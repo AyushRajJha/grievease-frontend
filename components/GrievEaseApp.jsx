@@ -1,4 +1,4 @@
-"use client"
+"use client";
 import React, { useState, useRef } from 'react';
 import { Upload, Camera, AlertCircle, Clock, Building2, TrendingUp, Sparkles, CheckCircle2, FileText, Brain, Image, MessageSquare, Zap, Edit2, Check, X } from 'lucide-react';
 

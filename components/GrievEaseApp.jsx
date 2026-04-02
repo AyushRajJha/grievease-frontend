@@ -15,6 +15,8 @@ const GrievEaseApp = () => {
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [isEditingCategory, setIsEditingCategory] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('');
+  const [showAbout, setShowAbout] = useState(false);
+  const [showThankYou, setShowThankYou] = useState(false);
   const fileInputRef = useRef(null);
 
   // Available complaint categories
@@ -477,9 +479,7 @@ const GrievEaseApp = () => {
 
       if (data.success) {
         setSubmitSuccess(true);
-        setTimeout(() => {
-          resetForm();
-        }, 3000);
+        setShowThankYou(true);
       } else {
         throw new Error(data.error || 'Submission failed');
       }
@@ -526,10 +526,100 @@ const GrievEaseApp = () => {
             <div className="flex items-center space-x-2 text-sm">
               <Zap className="w-4 h-4 text-yellow-500" />
               <span className="text-gray-600">Powered by Custom AI Model</span>
+              <button
+                onClick={() => setShowAbout(true)}
+                className="ml-4 bg-blue-100 text-blue-700 px-4 py-1.5 rounded-full text-sm font-medium hover:bg-blue-200 transition-all duration-200 border border-blue-200"
+              >
+                About
+              </button>
             </div>
           </div>
         </div>
       </div>
+
+      {/* About Modal */}
+      {showAbout && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-8 animate-fadeIn">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center space-x-3">
+                <div className="bg-gradient-to-br from-blue-600 to-indigo-600 p-2 rounded-lg">
+                  <Sparkles className="w-6 h-6 text-white" />
+                </div>
+                <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                  About GrievEase
+                </h2>
+              </div>
+              <button onClick={() => setShowAbout(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <p className="text-gray-600 mb-6">
+              GrievEase is an AI-powered complaint analysis and management platform designed to automate the process of understanding, prioritizing, and routing public complaints.
+            </p>
+            <h3 className="text-lg font-semibold text-gray-800 mb-3">Key Features</h3>
+            <ul className="space-y-3 text-gray-600">
+              <li className="flex items-start space-x-2">
+                <Brain className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                <span><strong>AI Text Analysis</strong> — DistilBERT model classifies complaint category, emotion and urgency</span>
+              </li>
+              <li className="flex items-start space-x-2">
+                <Image className="w-5 h-5 text-purple-600 mt-0.5 flex-shrink-0" />
+                <span><strong>Image Recognition</strong> — CLIP model detects issues from uploaded photos</span>
+              </li>
+              <li className="flex items-start space-x-2">
+                <Clock className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+                <span><strong>Resolution Time Prediction</strong> — Random Forest model estimates resolution time</span>
+              </li>
+              <li className="flex items-start space-x-2">
+                <Building2 className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                <span><strong>Smart Routing</strong> — Automatically assigns complaints to the correct department</span>
+              </li>
+              <li className="flex items-start space-x-2">
+                <Zap className="w-5 h-5 text-yellow-600 mt-0.5 flex-shrink-0" />
+                <span><strong>IoT Integration</strong> — Supports real-time sensor inputs from smart city infrastructure</span>
+              </li>
+            </ul>
+            <button
+              onClick={() => setShowAbout(false)}
+              className="mt-6 w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 rounded-xl font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all duration-200"
+            >
+              Got it!
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Thank You Page */}
+      {showThankYou && (
+        <div className="fixed inset-0 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center z-50 px-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-10 text-center animate-fadeIn">
+            <div className="flex justify-center mb-6">
+              <div className="bg-green-100 p-4 rounded-full">
+                <CheckCircle2 className="w-16 h-16 text-green-600" />
+              </div>
+            </div>
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">Thank You!</h2>
+            <p className="text-gray-600 text-lg mb-2">
+              Thank you for reaching out to us.
+            </p>
+            <p className="text-gray-600 mb-8">
+              Your complaint has been successfully recorded in our system and assigned to the <strong>{results?.department}</strong>. It will be resolved within <strong>{results?.estimatedTime}</strong>.
+            </p>
+            <div className="bg-blue-50 rounded-xl p-4 mb-8 text-left space-y-2">
+              <p className="text-sm text-gray-600"><span className="font-medium">Category:</span> {results?.category}</p>
+              <p className="text-sm text-gray-600"><span className="font-medium">Priority:</span> {results?.priority}</p>
+              <p className="text-sm text-gray-600"><span className="font-medium">Department:</span> {results?.department}</p>
+            </div>
+            <button
+              onClick={() => { setShowThankYou(false); resetForm(); }}
+              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-4 rounded-xl font-semibold text-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 shadow-lg"
+            >
+              Submit Another Complaint
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">

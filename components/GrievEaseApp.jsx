@@ -17,6 +17,7 @@ const GrievEaseApp = () => {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [showAbout, setShowAbout] = useState(false);
   const [showThankYou, setShowThankYou] = useState(false);
+  const [submittedComplaintId, setSubmittedComplaintId] = useState('');
   const fileInputRef = useRef(null);
 
   // Available complaint categories
@@ -479,6 +480,7 @@ const GrievEaseApp = () => {
 
       if (data.success) {
         setSubmitSuccess(true);
+        setSubmittedComplaintId(data.complaintId);
         setShowThankYou(true);
       } else {
         throw new Error(data.error || 'Submission failed');
@@ -603,20 +605,36 @@ const GrievEaseApp = () => {
             <p className="text-gray-600 text-lg mb-2">
               Thank you for reaching out to us.
             </p>
-            <p className="text-gray-600 mb-8">
+            <p className="text-gray-600 mb-6">
               Your complaint has been successfully recorded in our system and assigned to the <strong>{results?.department}</strong>. It will be resolved within <strong>{results?.estimatedTime}</strong>.
             </p>
-            <div className="bg-blue-50 rounded-xl p-4 mb-8 text-left space-y-2">
+            <div className="bg-blue-50 rounded-xl p-4 mb-4 text-left space-y-2">
               <p className="text-sm text-gray-600"><span className="font-medium">Category:</span> {results?.category}</p>
               <p className="text-sm text-gray-600"><span className="font-medium">Priority:</span> {results?.priority}</p>
               <p className="text-sm text-gray-600"><span className="font-medium">Department:</span> {results?.department}</p>
             </div>
-            <button
-              onClick={() => { setShowThankYou(false); resetForm(); }}
-              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-4 rounded-xl font-semibold text-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 shadow-lg"
-            >
-              Submit Another Complaint
-            </button>
+            {submittedComplaintId && (
+              <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 mb-6">
+                <p className="text-xs text-indigo-500 font-medium mb-1">YOUR COMPLAINT ID</p>
+                <p className="text-lg font-bold text-indigo-700 font-mono tracking-wider">{submittedComplaintId}</p>
+                <p className="text-xs text-indigo-400 mt-1">Save this ID to track your complaint</p>
+              </div>
+            )}
+            <div className="space-y-3">
+              <button
+                onClick={() => window.open(`/track?id=${submittedComplaintId}`, '_blank')}
+                className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-xl font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-lg flex items-center justify-center space-x-2"
+              >
+                <FileText className="w-5 h-5" />
+                <span>Track My Complaint</span>
+              </button>
+              <button
+                onClick={() => { setShowThankYou(false); resetForm(); }}
+                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 rounded-xl font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 shadow-lg"
+              >
+                Submit Another Complaint
+              </button>
+            </div>
           </div>
         </div>
       )}

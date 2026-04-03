@@ -528,12 +528,18 @@ const GrievEaseApp = () => {
             <div className="flex items-center space-x-2 text-sm">
               <Zap className="w-4 h-4 text-yellow-500" />
               <span className="text-gray-600">Powered by Custom AI Model</span>
-              <button
-                onClick={() => setShowAbout(true)}
-                className="ml-4 bg-blue-100 text-blue-700 px-4 py-1.5 rounded-full text-sm font-medium hover:bg-blue-200 transition-all duration-200 border border-blue-200"
-              >
-                About
-              </button>
+              <a
+              href="/track"
+  className="ml-2 bg-indigo-100 text-indigo-700 px-4 py-1.5 rounded-full text-sm font-medium hover:bg-indigo-200 transition-all duration-200 border border-indigo-200"
+>
+  Track Complaint
+</a>
+<button
+  onClick={() => setShowAbout(true)}
+  className="ml-2 bg-blue-100 text-blue-700 px-4 py-1.5 rounded-full text-sm font-medium hover:bg-blue-200 transition-all duration-200 border border-blue-200"
+>
+  About
+</button>
             </div>
           </div>
         </div>

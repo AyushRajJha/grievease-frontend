@@ -8,13 +8,16 @@ export async function POST(request) {
     const pythonApiUrl = `${process.env.ML_API_URL || 'http://127.0.0.1:8000'}/predict/`;
     
     // 3. Forward the FormData to your Python API
-    const response = await fetch(pythonApiUrl, {
-      method: 'POST',
-      body: formData,
-      // NOTE: Do NOT set 'Content-Type'. The browser will
-      // automatically set it to 'multipart/form-data'
-      // with the correct boundary.
-    });
+   const response = await fetch(pythonApiUrl, {
+  method: 'POST',
+  body: formData,
+  // NOTE: Do NOT set 'Content-Type'. The browser will
+  // automatically set it to 'multipart/form-data'
+  // with the correct boundary.
+  headers: {
+    'X-API-Secret': process.env.ML_API_SECRET || '',
+  },
+});
 
     if (!response.ok) {
       const errorText = await response.text();

@@ -3,27 +3,35 @@ import React, { useState, useRef } from 'react';
 import { Upload, Camera, AlertCircle, Clock, Building2, TrendingUp, Sparkles, CheckCircle2, FileText, Brain, Image, MessageSquare, Zap, Edit2, Check, X } from 'lucide-react';
 
 const compressAndEncodeImage = async (file) => {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const reader = new FileReader();
     
+    reader.onerror = () => {
+      reject(new Error('Failed to read file'));
+    };
+    
     reader.onload = (event) => {
-      const img = new Image();
+      const img = new window.Image();
+      
+      img.onerror = () => {
+        reject(new Error('Failed to load image'));
+      };
+      
       img.onload = () => {
         const canvas = document.createElement('canvas');
         
-        // Resize to 600x600 max
         let width = img.width;
         let height = img.height;
         const maxSize = 600;
         
         if (width > height) {
           if (width > maxSize) {
-            height = (height * maxSize) / width;
+            height = Math.round((height * maxSize) / width);
             width = maxSize;
           }
         } else {
           if (height > maxSize) {
-            width = (width * maxSize) / height;
+            width = Math.round((width * maxSize) / height);
             height = maxSize;
           }
         }
@@ -34,10 +42,10 @@ const compressAndEncodeImage = async (file) => {
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, width, height);
         
-        // Convert to Base64 with 60% quality
         const base64 = canvas.toDataURL('image/jpeg', 0.6);
         resolve(base64);
       };
+      
       img.src = event.target.result;
     };
     

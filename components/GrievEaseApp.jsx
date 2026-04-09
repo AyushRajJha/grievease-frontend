@@ -2,6 +2,49 @@
 import React, { useState, useRef } from 'react';
 import { Upload, Camera, AlertCircle, Clock, Building2, TrendingUp, Sparkles, CheckCircle2, FileText, Brain, Image, MessageSquare, Zap, Edit2, Check, X } from 'lucide-react';
 
+const compressAndEncodeImage = async (file) => {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        
+        // Resize to 600x600 max
+        let width = img.width;
+        let height = img.height;
+        const maxSize = 600;
+        
+        if (width > height) {
+          if (width > maxSize) {
+            height = (height * maxSize) / width;
+            width = maxSize;
+          }
+        } else {
+          if (height > maxSize) {
+            width = (width * maxSize) / height;
+            height = maxSize;
+          }
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        // Convert to Base64 with 60% quality
+        const base64 = canvas.toDataURL('image/jpeg', 0.6);
+        resolve(base64);
+      };
+      img.src = event.target.result;
+    };
+    
+    reader.readAsDataURL(file);
+  });
+};
+
 const GrievEaseApp = () => {
   const [imageFile, setImageFile] = useState(null);
   const [preview, setPreview] = useState(null);
@@ -447,51 +490,57 @@ const GrievEaseApp = () => {
     setIsEditingCategory(false);
   };
 
-  const submitComplaint = async () => {
-    if (!results) return;
-    
-    setIsSubmitting(true);
-    setError(null);
+ const submitComplaint = async () => {
+  if (!results) return;
+  
+  setIsSubmitting(true);
+  setError(null);
 
-    try {
-      const complaintData = {
-        category: results.category,
-        description: complaintText,
-        imageUrl: preview, // In production, upload to cloud storage first
-        department: results.department,
-        priority: results.priority,
-        estimatedTime: results.estimatedTime,
-        emotion: results.emotion,
-        sentiment: results.sentiment,
-        urgency: results.urgency,
-        confidence: results.confidence,
-        analysisSource: results.analysisSource,
-      };
-
-      const response = await fetch('/api/complaints', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(complaintData),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        setSubmitSuccess(true);
-        setSubmittedComplaintId(data.complaintId);
-        setShowThankYou(true);
-      } else {
-        throw new Error(data.error || 'Submission failed');
-      }
-    } catch (err) {
-      setError('Failed to submit complaint. Please try again.');
-      console.error('Submission error:', err);
-    } finally {
-      setIsSubmitting(false);
+  try {
+    // Compress image if it exists
+    let compressedImage = null;
+    if (imageFile) {
+      compressedImage = await compressAndEncodeImage(imageFile);
     }
-  };
+
+    const complaintData = {
+      category: results.category,
+      description: complaintText,
+      image: compressedImage, // ← Now it's compressed!
+      department: results.department,
+      priority: results.priority,
+      estimatedTime: results.estimatedTime,
+      emotion: results.emotion,
+      sentiment: results.sentiment,
+      urgency: results.urgency,
+      confidence: results.confidence,
+      analysisSource: results.analysisSource,
+    };
+
+    const response = await fetch('/api/complaints', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(complaintData),
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      setSubmitSuccess(true);
+      setSubmittedComplaintId(data.complaintId);
+      setShowThankYou(true);
+    } else {
+      throw new Error(data.error || 'Submission failed');
+    }
+  } catch (err) {
+    setError('Failed to submit complaint. Please try again.');
+    console.error('Submission error:', err);
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   const resetForm = () => {
     setImageFile(null);

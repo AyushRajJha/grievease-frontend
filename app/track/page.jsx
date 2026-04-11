@@ -1,26 +1,49 @@
 "use client";
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { CheckCircle2, Clock, Building2, Sparkles, Search, AlertCircle, ArrowLeft } from 'lucide-react';
+import {
+  Search, Sparkles, ArrowLeft, AlertCircle, Moon, Sun, Menu, X
+} from 'lucide-react';
+import { useTheme } from '@/context/ThemeContext';
+import ComplaintSidebar from '@/components/ComplaintSidebar';
+import ComplaintDetails from '@/components/ComplaintDetails';
+
+const MAX_HISTORY = 10;
+
+function saveToHistory(complaint) {
+  if (!complaint) return;
+  try {
+    const stored = JSON.parse(localStorage.getItem('complaintHistory') || '[]');
+    const entry = {
+      id: String(complaint._id),
+      category: complaint.category,
+      priority: complaint.priority,
+      department: complaint.department,
+      timestamp: new Date().toISOString(),
+    };
+    const filtered = stored.filter(item => item.id !== entry.id);
+    const updated = [entry, ...filtered].slice(0, MAX_HISTORY);
+    localStorage.setItem('complaintHistory', JSON.stringify(updated));
+  } catch {
+    // localStorage unavailable — skip silently
+  }
+}
 
 function TrackingContent() {
   const searchParams = useSearchParams();
-  const [complaintId, setComplaintId] = useState('');
+  const { isDark, toggleTheme } = useTheme();
+
+  const [inputId, setInputId] = useState('');
   const [complaint, setComplaint] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [activeId, setActiveId] = useState('');
 
-  useEffect(() => {
-    const idFromUrl = searchParams.get('id');
-    if (idFromUrl) {
-      setComplaintId(idFromUrl);
-      fetchComplaint(idFromUrl);
-    }
-  }, [searchParams]);
-
-  const fetchComplaint = async (id) => {
-    if (!id.trim()) {
-      setError('Please enter a complaint ID');
+  const fetchComplaint = useCallback(async (id) => {
+    const trimmed = (id || '').trim();
+    if (!trimmed) {
+      setError('Please enter a complaint ID.');
       return;
     }
     setLoading(true);
@@ -28,240 +51,204 @@ function TrackingContent() {
     setComplaint(null);
 
     try {
-      const response = await fetch(`/api/complaints/${id}`);
-      const data = await response.json();
-
+      const res = await fetch(`/api/complaints/${trimmed}`);
+      const data = await res.json();
       if (data.success) {
         setComplaint(data.complaint);
+        setActiveId(String(data.complaint._id));
+        saveToHistory(data.complaint);
       } else {
-        setError('Complaint not found. Please check your ID and try again.');
+        setError(data.error === 'Invalid complaint ID'
+          ? 'Invalid complaint ID format. Please check and try again.'
+          : 'Complaint not found. Please verify your ID.');
       }
-    } catch (err) {
-      setError('Failed to fetch complaint. Please try again.');
+    } catch {
+      setError('Unable to reach server. Please try again.');
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  // Auto-fetch from ?id= query param on first load
+  useEffect(() => {
+    const idFromUrl = searchParams.get('id');
+    if (idFromUrl) {
+      setInputId(idFromUrl);
+      fetchComplaint(idFromUrl);
+    }
+  }, [searchParams, fetchComplaint]);
+
+  const handleSidebarSelect = (id) => {
+    setInputId(id);
+    fetchComplaint(id);
+    setSidebarOpen(false); // collapse on mobile after selection
   };
-
-  const getTimelineStages = (complaint) => {
-    if (!complaint) return [];
-
-    const createdAt = new Date(complaint.createdAt);
-    const now = new Date();
-    const hoursPassed = (now - createdAt) / (1000 * 60 * 60);
-
-    const stages = [
-      {
-        id: 1,
-        title: 'Complaint Submitted',
-        description: 'Your complaint has been received and recorded in our system.',
-        icon: '📋',
-        completedAt: createdAt.toLocaleString(),
-        done: true,
-      },
-      {
-        id: 2,
-        title: 'Under Review',
-        description: 'Our team is reviewing your complaint and verifying the details.',
-        icon: '🔍',
-        completedAt: hoursPassed >= 1 ? new Date(createdAt.getTime() + 1 * 60 * 60 * 1000).toLocaleString() : null,
-        done: hoursPassed >= 1,
-      },
-      {
-        id: 3,
-        title: 'Assigned to Department',
-        description: `Complaint has been assigned to ${complaint.department}.`,
-        icon: '🏢',
-        completedAt: hoursPassed >= 6 ? new Date(createdAt.getTime() + 6 * 60 * 60 * 1000).toLocaleString() : null,
-        done: hoursPassed >= 6,
-      },
-      {
-        id: 4,
-        title: 'In Progress',
-        description: 'The department is actively working on resolving your complaint.',
-        icon: '⚙️',
-        completedAt: hoursPassed >= 24 ? new Date(createdAt.getTime() + 24 * 60 * 60 * 1000).toLocaleString() : null,
-        done: hoursPassed >= 24,
-      },
-      {
-        id: 5,
-        title: 'Resolved',
-        description: 'Your complaint has been successfully resolved. Thank you for your patience!',
-        icon: '✅',
-        completedAt: null,
-        done: false,
-      },
-    ];
-
-    return stages;
-  };
-
-  const getOverallStatus = (stages) => {
-    const doneCount = stages.filter(s => s.done).length;
-    if (doneCount === stages.length) return { label: 'Resolved', color: 'text-green-600', bg: 'bg-green-100' };
-    if (doneCount >= 3) return { label: 'In Progress', color: 'text-blue-600', bg: 'bg-blue-100' };
-    if (doneCount >= 2) return { label: 'Under Review', color: 'text-yellow-600', bg: 'bg-yellow-100' };
-    return { label: 'Submitted', color: 'text-purple-600', bg: 'bg-purple-100' };
-  };
-
-  const stages = complaint ? getTimelineStages(complaint) : [];
-  const status = complaint ? getOverallStatus(stages) : null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="bg-gradient-to-br from-blue-600 to-indigo-600 p-2 rounded-lg">
-                <Sparkles className="w-8 h-8 text-white" />
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-slate-900 dark:to-gray-800">
+
+      {/* ── Header ─────────────────────────────────────────────── */}
+      <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 z-20">
+        <div className="px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+
+          {/* Left — logo + back */}
+          <div className="flex items-center space-x-4">
+            {/* Mobile sidebar toggle */}
+            <button
+              onClick={() => setSidebarOpen(prev => !prev)}
+              aria-label="Toggle sidebar"
+              className="lg:hidden p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            >
+              {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
+
+            <div className="flex items-center space-x-2.5">
+              <div className="bg-gradient-to-br from-blue-600 to-indigo-600 p-1.5 rounded-lg shadow">
+                <Sparkles className="w-5 h-5 text-white" />
               </div>
-              <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+              <div className="leading-tight">
+                <h1 className="text-lg font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
                   GrievEase
                 </h1>
-                <p className="text-sm text-gray-600">Complaint Tracking</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 hidden sm:block">Complaint Tracking</p>
               </div>
             </div>
+          </div>
+
+          {/* Right — back + theme */}
+          <div className="flex items-center space-x-3">
             <a
               href="/"
-              className="flex items-center space-x-2 text-blue-600 hover:text-blue-700 font-medium"
+              className="flex items-center space-x-1.5 text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-medium transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
-              <span>Back to Home</span>
+              <span className="hidden sm:inline">Back to Home</span>
             </a>
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-2xl mx-auto px-4 py-12">
-        {/* Search Box */}
-        <div className="bg-white rounded-2xl shadow-lg p-8 mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Track Your Complaint</h2>
-          <p className="text-gray-500 mb-6">Enter your complaint ID to see the current status</p>
-          <div className="flex space-x-3">
-            <input
-              type="text"
-              value={complaintId}
-              onChange={(e) => setComplaintId(e.target.value)}
-              placeholder="Enter your Complaint ID..."
-              className="flex-1 border border-gray-300 rounded-xl px-4 py-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
-              onKeyDown={(e) => e.key === 'Enter' && fetchComplaint(complaintId)}
-            />
             <button
-              onClick={() => fetchComplaint(complaintId)}
-              disabled={loading}
-              className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-xl font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 flex items-center space-x-2"
+              onClick={toggleTheme}
+              aria-label="Toggle dark mode"
+              className="p-2 rounded-xl bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all"
             >
-              {loading ? (
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <Search className="w-5 h-5" />
-              )}
-              <span>Track</span>
+              {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
           </div>
-          {error && (
-            <div className="mt-4 flex items-center space-x-2 text-red-600 bg-red-50 p-3 rounded-xl">
-              <AlertCircle className="w-5 h-5 flex-shrink-0" />
-              <span className="text-sm">{error}</span>
-            </div>
-          )}
         </div>
+      </header>
 
-        {/* Complaint Details + Timeline */}
-        {complaint && (
-          <div className="space-y-6 animate-fadeIn">
-            {/* Status Card */}
-            <div className="bg-white rounded-2xl shadow-lg p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-bold text-gray-900">Complaint Details</h3>
-                <span className={`px-3 py-1 rounded-full text-sm font-semibold ${status.bg} ${status.color}`}>
-                  {status.label}
-                </span>
+      {/* ── Body: sidebar + main ────────────────────────────────── */}
+      <div className="flex flex-1 overflow-hidden">
+
+        {/* Sidebar — fixed width on desktop, drawer on mobile */}
+        <>
+          {/* Mobile backdrop */}
+          {sidebarOpen && (
+            <div
+              className="fixed inset-0 z-30 bg-black/40 backdrop-blur-sm lg:hidden"
+              onClick={() => setSidebarOpen(false)}
+              aria-hidden="true"
+            />
+          )}
+
+          <div
+            className={`
+              fixed inset-y-0 left-0 z-40 w-72 pt-[65px] transition-transform duration-300 ease-in-out
+              lg:static lg:inset-auto lg:z-auto lg:pt-0 lg:w-64 lg:flex-shrink-0
+              ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+            `}
+          >
+            <div className="h-full lg:h-[calc(100vh-65px)] overflow-hidden">
+              <ComplaintSidebar
+                activeId={activeId}
+                onSelect={handleSidebarSelect}
+              />
+            </div>
+          </div>
+        </>
+
+        {/* Main content */}
+        <main className="flex-1 overflow-y-auto px-4 sm:px-6 py-8 lg:py-10">
+          <div className="max-w-2xl mx-auto">
+
+            {/* Search bar */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-5 mb-6">
+              <h2 className="text-base font-bold text-gray-900 dark:text-gray-100 mb-1">Track Your Complaint</h2>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">Enter your complaint ID to view status and details</p>
+
+              <div className="flex space-x-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type="text"
+                    value={inputId}
+                    onChange={(e) => setInputId(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && fetchComplaint(inputId)}
+                    placeholder="Paste complaint ID here…"
+                    aria-label="Complaint ID"
+                    className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-600 rounded-xl text-sm font-mono text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-400 dark:focus:ring-indigo-500 transition-all"
+                  />
+                </div>
+                <button
+                  onClick={() => fetchComplaint(inputId)}
+                  disabled={loading}
+                  aria-label="Track complaint"
+                  className="px-5 py-2.5 rounded-xl font-semibold text-sm text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 disabled:opacity-60 disabled:cursor-not-allowed transition-all shadow-sm flex items-center space-x-2 flex-shrink-0"
+                >
+                  {loading ? (
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" aria-hidden="true" />
+                  ) : (
+                    <Search className="w-4 h-4" />
+                  )}
+                  <span>Track</span>
+                </button>
               </div>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <p className="text-gray-500">Category</p>
-                  <p className="font-semibold text-gray-900">{complaint.category}</p>
+
+              {error && (
+                <div role="alert" className="mt-3 flex items-center space-x-2 text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 px-4 py-2.5 rounded-xl text-sm">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                  <span>{error}</span>
                 </div>
-                <div>
-                  <p className="text-gray-500">Priority</p>
-                  <p className={`font-semibold ${
-                    complaint.priority === 'High' ? 'text-red-600' :
-                    complaint.priority === 'Medium' ? 'text-yellow-600' : 'text-blue-600'
-                  }`}>{complaint.priority}</p>
-                </div>
-                <div>
-                  <p className="text-gray-500">Department</p>
-                  <p className="font-semibold text-gray-900">{complaint.department}</p>
-                </div>
-                <div>
-                  <p className="text-gray-500">Est. Resolution</p>
-                  <p className="font-semibold text-gray-900">{complaint.estimatedTime}</p>
-                </div>
-                <div className="col-span-2">
-                  <p className="text-gray-500">Submitted On</p>
-                  <p className="font-semibold text-gray-900">{new Date(complaint.createdAt).toLocaleString()}</p>
-                </div>
-                {complaint.description && (
-                  <div className="col-span-2">
-                    <p className="text-gray-500">Description</p>
-                    <p className="font-semibold text-gray-900">{complaint.description}</p>
-                  </div>
-                )}
-              </div>
+              )}
             </div>
 
-            {/* Timeline */}
-            <div className="bg-white rounded-2xl shadow-lg p-6">
-              <h3 className="text-lg font-bold text-gray-900 mb-6">Complaint Timeline</h3>
-              <div className="relative">
-                {stages.map((stage, index) => (
-                  <div key={stage.id} className="flex items-start space-x-4 mb-6 last:mb-0">
-                    {/* Line connector */}
-                    <div className="flex flex-col items-center">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg flex-shrink-0 ${
-                        stage.done ? 'bg-green-100' : 'bg-gray-100'
-                      }`}>
-                        {stage.done ? '✅' : stage.icon}
-                      </div>
-                      {index < stages.length - 1 && (
-                        <div className={`w-0.5 h-8 mt-1 ${stage.done ? 'bg-green-300' : 'bg-gray-200'}`} />
-                      )}
-                    </div>
-                    {/* Content */}
-                    <div className="flex-1 pt-1">
-                      <div className="flex items-center justify-between">
-                        <h4 className={`font-semibold ${stage.done ? 'text-gray-900' : 'text-gray-400'}`}>
-                          {stage.title}
-                        </h4>
-                        {stage.done && stage.completedAt && (
-                          <span className="text-xs text-green-600 font-medium">{stage.completedAt}</span>
-                        )}
-                        {!stage.done && (
-                          <span className="text-xs text-gray-400">Pending</span>
-                        )}
-                      </div>
-                      <p className={`text-sm mt-1 ${stage.done ? 'text-gray-600' : 'text-gray-400'}`}>
-                        {stage.description}
-                      </p>
-                    </div>
+            {/* Loading skeleton */}
+            {loading && (
+              <div className="space-y-4" aria-live="polite" aria-label="Loading complaint details">
+                {[1, 2, 3].map(i => (
+                  <div key={i} className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-5 animate-pulse">
+                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/3 mb-3" />
+                    <div className="h-3 bg-gray-100 dark:bg-gray-600 rounded w-2/3" />
                   </div>
                 ))}
               </div>
-            </div>
+            )}
+
+            {/* Complaint details */}
+            {!loading && complaint && (
+              <ComplaintDetails complaint={complaint} />
+            )}
+
+            {/* Empty state */}
+            {!loading && !complaint && !error && (
+              <div className="text-center py-20">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-indigo-50 dark:bg-indigo-900/30 mb-4">
+                  <Search className="w-8 h-8 text-indigo-400 dark:text-indigo-500" />
+                </div>
+                <p className="text-base font-semibold text-gray-500 dark:text-gray-400">No complaint loaded</p>
+                <p className="text-sm text-gray-400 dark:text-gray-500 mt-1 max-w-xs mx-auto">
+                  Enter a complaint ID above, or select a recent complaint from the sidebar.
+                </p>
+              </div>
+            )}
           </div>
-        )}
+        </main>
       </div>
 
       <style jsx>{`
         @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
+          from { opacity: 0; transform: translateY(8px); }
+          to   { opacity: 1; transform: translateY(0); }
         }
-        .animate-fadeIn { animation: fadeIn 0.5s ease-out; }
+        .animate-fadeIn { animation: fadeIn 0.4s ease-out; }
       `}</style>
     </div>
   );
@@ -269,7 +256,13 @@ function TrackingContent() {
 
 export default function TrackPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+          <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+        </div>
+      }
+    >
       <TrackingContent />
     </Suspense>
   );

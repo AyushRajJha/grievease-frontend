@@ -55,7 +55,7 @@ const compressAndEncodeImage = async (file) => {
 };
 
 const GrievEaseApp = () => {
-  const { isDark, toggleTheme } = useTheme();
+  const { toggleTheme } = useTheme();
   const [imageFile, setImageFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const [complaintText, setComplaintText] = useState('');
@@ -601,12 +601,12 @@ const GrievEaseApp = () => {
   About
 </button>
 <button
-  suppressHydrationWarning
   onClick={toggleTheme}
   aria-label="Toggle dark mode"
   className="ml-2 p-2 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-yellow-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-200 border border-gray-200 dark:border-gray-600"
 >
-  {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+  <Moon className="w-4 h-4 dark:hidden" />
+  <Sun className="w-4 h-4 hidden dark:block" />
 </button>
             </div>
           </div>

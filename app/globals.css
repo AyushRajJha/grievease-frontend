@@ -27,6 +27,9 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-*, *::before, *::after {
+/* Smooth dark mode transitions for common structural elements */
+div, header, footer, main, section, nav, aside, article,
+button, input, textarea, select,
+h1, h2, h3, h4, h5, h6, p, span, a {
   transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
 }

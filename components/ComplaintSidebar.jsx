@@ -27,13 +27,13 @@ function timeAgo(dateString) {
   return `${days}d ago`;
 }
 
-export default function ComplaintSidebar({ activeId, onSelect }) {
+export default function ComplaintSidebar({ activeId, onSelect, refreshKey = 0 }) {
   const { isDark } = useTheme();
   const [history, setHistory] = useState([]);
   const [query, setQuery] = useState('');
   const [showClearConfirm, setShowClearConfirm] = useState(false);
 
-  // Load from localStorage on mount
+  // Load from localStorage on mount and whenever the parent signals a history update
   useEffect(() => {
     try {
       const stored = JSON.parse(localStorage.getItem('complaintHistory') || '[]');
@@ -41,7 +41,7 @@ export default function ComplaintSidebar({ activeId, onSelect }) {
     } catch {
       setHistory([]);
     }
-  }, [activeId]); // re-read when active selection changes (new item may have been added)
+  }, [refreshKey]);
 
   const filtered = history.filter((item) => {
     const q = query.toLowerCase();

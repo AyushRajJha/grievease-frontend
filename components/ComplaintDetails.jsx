@@ -27,13 +27,14 @@ const SENTIMENT_CONFIG = {
 
 function getTimelineStages(complaint) {
   const createdAt = new Date(complaint.createdAt);
-  const hoursPassed = (Date.now() - createdAt.getTime()) / 3600000;
+  const MS_PER_HOUR = 60 * 60 * 1000;
+  const hoursPassed = (Date.now() - createdAt.getTime()) / MS_PER_HOUR;
 
   return [
     { id: 1, title: 'Submitted', description: 'Complaint received and recorded.', icon: '📋', completedAt: createdAt.toLocaleString(), done: true },
-    { id: 2, title: 'Under Review', description: 'Team is reviewing your complaint.', icon: '🔍', completedAt: hoursPassed >= 1 ? new Date(createdAt.getTime() + 3600000).toLocaleString() : null, done: hoursPassed >= 1 },
-    { id: 3, title: 'Assigned', description: `Assigned to ${complaint.department}.`, icon: '🏢', completedAt: hoursPassed >= 6 ? new Date(createdAt.getTime() + 21600000).toLocaleString() : null, done: hoursPassed >= 6 },
-    { id: 4, title: 'In Progress', description: 'Department is actively working on it.', icon: '⚙️', completedAt: hoursPassed >= 24 ? new Date(createdAt.getTime() + 86400000).toLocaleString() : null, done: hoursPassed >= 24 },
+    { id: 2, title: 'Under Review', description: 'Team is reviewing your complaint.', icon: '🔍', completedAt: hoursPassed >= 1 ? new Date(createdAt.getTime() + 1 * MS_PER_HOUR).toLocaleString() : null, done: hoursPassed >= 1 },
+    { id: 3, title: 'Assigned', description: `Assigned to ${complaint.department}.`, icon: '🏢', completedAt: hoursPassed >= 6 ? new Date(createdAt.getTime() + 6 * MS_PER_HOUR).toLocaleString() : null, done: hoursPassed >= 6 },
+    { id: 4, title: 'In Progress', description: 'Department is actively working on it.', icon: '⚙️', completedAt: hoursPassed >= 24 ? new Date(createdAt.getTime() + 24 * MS_PER_HOUR).toLocaleString() : null, done: hoursPassed >= 24 },
     { id: 5, title: 'Resolved', description: 'Complaint successfully resolved.', icon: '✅', completedAt: null, done: false },
   ];
 }

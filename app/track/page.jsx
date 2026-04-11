@@ -39,6 +39,7 @@ function TrackingContent() {
   const [error, setError] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeId, setActiveId] = useState('');
+  const [historyVersion, setHistoryVersion] = useState(0);
 
   const fetchComplaint = useCallback(async (id) => {
     const trimmed = (id || '').trim();
@@ -57,6 +58,7 @@ function TrackingContent() {
         setComplaint(data.complaint);
         setActiveId(String(data.complaint._id));
         saveToHistory(data.complaint);
+        setHistoryVersion(v => v + 1); // signal sidebar to refresh
       } else {
         setError(data.error === 'Invalid complaint ID'
           ? 'Invalid complaint ID format. Please check and try again.'
@@ -160,6 +162,7 @@ function TrackingContent() {
               <ComplaintSidebar
                 activeId={activeId}
                 onSelect={handleSidebarSelect}
+                refreshKey={historyVersion}
               />
             </div>
           </div>

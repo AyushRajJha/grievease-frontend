@@ -69,6 +69,7 @@ const GrievEaseApp = () => {
   const [showAbout, setShowAbout] = useState(false);
   const [showThankYou, setShowThankYou] = useState(false);
   const [submittedComplaintId, setSubmittedComplaintId] = useState('');
+  const [copied, setCopied] = useState(false);
   const fileInputRef = useRef(null);
 
   // Available complaint categories
@@ -679,7 +680,19 @@ const GrievEaseApp = () => {
             {submittedComplaintId && (
               <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 mb-6">
                 <p className="text-xs text-indigo-500 font-medium mb-1">YOUR COMPLAINT ID</p>
-                <p className="text-lg font-bold text-indigo-700 font-mono tracking-wider">{submittedComplaintId}</p>
+                <div className="flex items-center justify-between">
+                  <p className="text-lg font-bold text-indigo-700 font-mono tracking-wider">{submittedComplaintId}</p>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(submittedComplaintId);
+                      setCopied(true);
+                      setTimeout(() => setCopied(false), 2000);
+                    }}
+                    className="ml-2 bg-indigo-600 text-white px-3 py-1 rounded-lg text-xs font-medium hover:bg-indigo-700 transition-all"
+                  >
+                    {copied ? '✅ Copied!' : '📋 Copy'}
+                  </button>
+                </div>
                 <p className="text-xs text-indigo-400 mt-1">Save this ID to track your complaint</p>
               </div>
             )}
@@ -1075,6 +1088,29 @@ const GrievEaseApp = () => {
                 </div>
               )}
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="bg-white border-t border-gray-200 mt-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0">
+            <div className="flex items-center space-x-3">
+              <div className="bg-gradient-to-br from-blue-600 to-indigo-600 p-1.5 rounded-lg">
+                <Sparkles className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <p className="font-bold text-gray-900">GrievEase</p>
+                <p className="text-xs text-gray-500">AI-Powered Complaint Analysis System</p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-6 text-sm text-gray-500">
+              <a href="/" className="hover:text-blue-600 transition-colors">Home</a>
+              <a href="/track" className="hover:text-blue-600 transition-colors">Track Complaint</a>
+              <button onClick={() => setShowAbout(true)} className="hover:text-blue-600 transition-colors">About</button>
+            </div>
+            <p className="text-sm text-gray-400">© 2025 GrievEase. All rights reserved.</p>
           </div>
         </div>
       </div>

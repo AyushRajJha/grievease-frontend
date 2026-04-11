@@ -19,6 +19,9 @@ const URGENCY_CONFIG = {
   low: 'text-green-600 dark:text-green-400',
 };
 
+const URGENCY_HIGH_THRESHOLD = 0.7;
+const URGENCY_MEDIUM_THRESHOLD = 0.4;
+
 const SENTIMENT_CONFIG = {
   negative: { label: 'Negative', color: 'text-red-600 dark:text-red-400', icon: '😞' },
   neutral: { label: 'Neutral', color: 'text-gray-600 dark:text-gray-400', icon: '😐' },
@@ -70,7 +73,10 @@ export default function ComplaintDetails({ complaint }) {
   const doneCount = stages.filter(s => s.done).length;
   const priority = PRIORITY_CONFIG[complaint.priority] || PRIORITY_CONFIG.Low;
   const sentiment = SENTIMENT_CONFIG[complaint.sentiment?.toLowerCase()] || SENTIMENT_CONFIG.neutral;
-  const urgencyClass = URGENCY_CONFIG[complaint.urgency?.toLowerCase()] || 'text-gray-600 dark:text-gray-400';
+  const urgencyString = typeof complaint.urgency === 'number'
+    ? (complaint.urgency > URGENCY_HIGH_THRESHOLD ? 'high' : complaint.urgency > URGENCY_MEDIUM_THRESHOLD ? 'medium' : 'low')
+    : complaint.urgency?.toLowerCase();
+  const urgencyClass = URGENCY_CONFIG[urgencyString] || 'text-gray-600 dark:text-gray-400';
 
   const overallStatusLabel =
     doneCount === stages.length ? 'Resolved' :
@@ -193,7 +199,7 @@ export default function ComplaintDetails({ complaint }) {
               </div>
               <div>
                 <p className="text-xs text-gray-500 dark:text-gray-400">Urgency</p>
-                <p className={`text-sm font-semibold capitalize mt-0.5 ${urgencyClass}`}>{complaint.urgency}</p>
+                <p className={`text-sm font-semibold capitalize mt-0.5 ${urgencyClass}`}>{urgencyString}</p>
               </div>
             </div>
           )}

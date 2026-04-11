@@ -809,12 +809,12 @@ const GrievEaseApp = () => {
               {isProcessing ? (
                 <>
                   <div className="w-5 h-5 border-3 border-white border-t-transparent rounded-full animate-spin" />
-                  <span>Analyzing with AI...</span>
+                  <span>Filing your complaint..</span>
                 </>
               ) : (
                 <>
                   <Brain className="w-5 h-5" />
-                  <span>Analyze with AI</span>
+                  <span>File Your Complaint</span>
                 </>
               )}
             </button>

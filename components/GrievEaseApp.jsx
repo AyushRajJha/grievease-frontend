@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useRef } from 'react';
-import { Upload, Camera, AlertCircle, Clock, Building2, TrendingUp, Sparkles, CheckCircle2, FileText, Brain, Image, MessageSquare, Zap, Edit2, Check, X } from 'lucide-react';
+import { Upload, Camera, AlertCircle, Clock, Building2, TrendingUp, Sparkles, CheckCircle2, FileText, Brain, Image, MessageSquare, Zap, Edit2, Check, X, Moon, Sun } from 'lucide-react';
+import { useTheme } from '@/context/ThemeContext';
 
 const compressAndEncodeImage = async (file) => {
   return new Promise((resolve, reject) => {
@@ -54,6 +55,7 @@ const compressAndEncodeImage = async (file) => {
 };
 
 const GrievEaseApp = () => {
+  const { toggleTheme } = useTheme();
   const [imageFile, setImageFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const [complaintText, setComplaintText] = useState('');
@@ -567,9 +569,9 @@ const GrievEaseApp = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-slate-900 dark:to-gray-800">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b border-gray-200">
+      <div className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
@@ -580,23 +582,31 @@ const GrievEaseApp = () => {
                 <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
                   GrievEase
                 </h1>
-                <p className="text-sm text-gray-600">AI-Powered Complaint Analysis System</p>
+                <p className="text-sm text-gray-600 dark:text-gray-300">AI-Powered Complaint Analysis System</p>
               </div>
             </div>
             <div className="flex items-center space-x-2 text-sm">
               <Zap className="w-4 h-4 text-yellow-500" />
-              <span className="text-gray-600">Powered by Custom AI Model</span>
+              <span className="text-gray-600 dark:text-gray-300">Powered by Custom AI Model</span>
               <a
               href="/track"
-  className="ml-2 bg-indigo-100 text-indigo-700 px-4 py-1.5 rounded-full text-sm font-medium hover:bg-indigo-200 transition-all duration-200 border border-indigo-200"
+  className="ml-2 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 px-4 py-1.5 rounded-full text-sm font-medium hover:bg-indigo-200 dark:hover:bg-indigo-800/60 transition-all duration-200 border border-indigo-200 dark:border-indigo-700"
 >
   Track Complaint
 </a>
 <button
   onClick={() => setShowAbout(true)}
-  className="ml-2 bg-blue-100 text-blue-700 px-4 py-1.5 rounded-full text-sm font-medium hover:bg-blue-200 transition-all duration-200 border border-blue-200"
+  className="ml-2 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-4 py-1.5 rounded-full text-sm font-medium hover:bg-blue-200 dark:hover:bg-blue-800/60 transition-all duration-200 border border-blue-200 dark:border-blue-700"
 >
   About
+</button>
+<button
+  onClick={toggleTheme}
+  aria-label="Toggle dark mode"
+  className="ml-2 p-2 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-yellow-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-200 border border-gray-200 dark:border-gray-600"
+>
+  <Moon className="w-4 h-4 dark:hidden" />
+  <Sun className="w-4 h-4 hidden dark:block" />
 </button>
             </div>
           </div>
@@ -606,7 +616,7 @@ const GrievEaseApp = () => {
       {/* About Modal */}
       {showAbout && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-8 animate-fadeIn">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-lg w-full p-8 animate-fadeIn">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center space-x-3">
                 <div className="bg-gradient-to-br from-blue-600 to-indigo-600 p-2 rounded-lg">
@@ -616,15 +626,15 @@ const GrievEaseApp = () => {
                   About GrievEase
                 </h2>
               </div>
-              <button onClick={() => setShowAbout(false)} className="text-gray-400 hover:text-gray-600">
+              <button onClick={() => setShowAbout(false)} className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300">
                 <X className="w-6 h-6" />
               </button>
             </div>
-            <p className="text-gray-600 mb-6">
+            <p className="text-gray-600 dark:text-gray-300 mb-6">
               GrievEase is an AI-powered complaint analysis and management platform designed to automate the process of understanding, prioritizing, and routing public complaints.
             </p>
-            <h3 className="text-lg font-semibold text-gray-800 mb-3">Key Features</h3>
-            <ul className="space-y-3 text-gray-600">
+            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">Key Features</h3>
+            <ul className="space-y-3 text-gray-600 dark:text-gray-300">
               <li className="flex items-start space-x-2">
                 <Brain className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
                 <span><strong>AI Text Analysis</strong> — DistilBERT model classifies complaint category, emotion and urgency</span>
@@ -658,30 +668,30 @@ const GrievEaseApp = () => {
 
       {/* Thank You Page */}
       {showThankYou && (
-        <div className="fixed inset-0 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center z-50 px-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-10 text-center animate-fadeIn">
+        <div className="fixed inset-0 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-slate-900 dark:to-gray-800 flex items-center justify-center z-50 px-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-10 text-center animate-fadeIn">
             <div className="flex justify-center mb-6">
-              <div className="bg-green-100 p-4 rounded-full">
-                <CheckCircle2 className="w-16 h-16 text-green-600" />
+              <div className="bg-green-100 dark:bg-green-900/40 p-4 rounded-full">
+                <CheckCircle2 className="w-16 h-16 text-green-600 dark:text-green-400" />
               </div>
             </div>
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Thank You!</h2>
-            <p className="text-gray-600 text-lg mb-2">
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-4">Thank You!</h2>
+            <p className="text-gray-600 dark:text-gray-300 text-lg mb-2">
               Thank you for reaching out to us.
             </p>
-            <p className="text-gray-600 mb-6">
+            <p className="text-gray-600 dark:text-gray-300 mb-6">
               Your complaint has been successfully recorded in our system and assigned to the <strong>{results?.department}</strong>. It will be resolved within <strong>{results?.estimatedTime}</strong>.
             </p>
-            <div className="bg-blue-50 rounded-xl p-4 mb-4 text-left space-y-2">
-              <p className="text-sm text-gray-600"><span className="font-medium">Category:</span> {results?.category}</p>
-              <p className="text-sm text-gray-600"><span className="font-medium">Priority:</span> {results?.priority}</p>
-              <p className="text-sm text-gray-600"><span className="font-medium">Department:</span> {results?.department}</p>
+            <div className="bg-blue-50 dark:bg-blue-900/30 rounded-xl p-4 mb-4 text-left space-y-2">
+              <p className="text-sm text-gray-600 dark:text-gray-300"><span className="font-medium">Category:</span> {results?.category}</p>
+              <p className="text-sm text-gray-600 dark:text-gray-300"><span className="font-medium">Priority:</span> {results?.priority}</p>
+              <p className="text-sm text-gray-600 dark:text-gray-300"><span className="font-medium">Department:</span> {results?.department}</p>
             </div>
             {submittedComplaintId && (
-              <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 mb-6">
-                <p className="text-xs text-indigo-500 font-medium mb-1">YOUR COMPLAINT ID</p>
+              <div className="bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-700 rounded-xl p-4 mb-6">
+                <p className="text-xs text-indigo-500 dark:text-indigo-400 font-medium mb-1">YOUR COMPLAINT ID</p>
                 <div className="flex items-center justify-between">
-                  <p className="text-lg font-bold text-indigo-700 font-mono tracking-wider">{submittedComplaintId}</p>
+                  <p className="text-lg font-bold text-indigo-700 dark:text-indigo-300 font-mono tracking-wider">{submittedComplaintId}</p>
                   <button
                     onClick={() => {
                       navigator.clipboard.writeText(submittedComplaintId);
@@ -693,7 +703,7 @@ const GrievEaseApp = () => {
                     {copied ? '✅ Copied!' : '📋 Copy'}
                   </button>
                 </div>
-                <p className="text-xs text-indigo-400 mt-1">Save this ID to track your complaint</p>
+                <p className="text-xs text-indigo-400 dark:text-indigo-500 mt-1">Save this ID to track your complaint</p>
               </div>
             )}
             <div className="space-y-3">
@@ -721,8 +731,8 @@ const GrievEaseApp = () => {
           {/* Input Section */}
           <div className="space-y-6">
             {/* Image Upload */}
-            <div className="bg-white rounded-2xl shadow-lg p-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6 flex items-center">
                 <Upload className="w-6 h-6 mr-2 text-blue-600" />
                 Upload Image (Optional)
               </h2>
@@ -731,19 +741,19 @@ const GrievEaseApp = () => {
                 <div
                   className={`border-3 border-dashed rounded-xl p-12 text-center transition-all duration-200 ${
                     dragActive
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-300 hover:border-blue-400 hover:bg-gray-50'
+                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                      : 'border-gray-300 dark:border-gray-600 hover:border-blue-400 hover:bg-gray-50 dark:hover:bg-gray-700/50'
                   }`}
                   onDragEnter={handleDrag}
                   onDragLeave={handleDrag}
                   onDragOver={handleDrag}
                   onDrop={handleDrop}
                 >
-                  <Camera className="w-16 h-16 mx-auto text-gray-400 mb-4" />
-                  <p className="text-lg font-medium text-gray-700 mb-2">
+                  <Camera className="w-16 h-16 mx-auto text-gray-400 dark:text-gray-500 mb-4" />
+                  <p className="text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Drag & drop your image here
                   </p>
-                  <p className="text-sm text-gray-500 mb-6">or</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">or</p>
                   <button
                     onClick={() => fileInputRef.current?.click()}
                     className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-8 py-3 rounded-lg font-medium hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 shadow-md hover:shadow-lg"
@@ -757,7 +767,7 @@ const GrievEaseApp = () => {
                     onChange={handleFileInput}
                     className="hidden"
                   />
-                  <p className="text-xs text-gray-400 mt-4">
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-4">
                     Supports: JPG, PNG, GIF (Max 10MB)
                   </p>
                 </div>
@@ -767,7 +777,7 @@ const GrievEaseApp = () => {
                     <img
                       src={preview}
                       alt="Preview"
-                      className="w-full h-auto max-h-64 object-contain bg-gray-100"
+                      className="w-full h-auto max-h-64 object-contain bg-gray-100 dark:bg-gray-700"
                     />
                     <div className="absolute top-3 right-3">
                       <button
@@ -787,8 +797,8 @@ const GrievEaseApp = () => {
             </div>
 
             {/* Text Input */}
-            <div className="bg-white rounded-2xl shadow-lg p-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6 flex items-center">
                 <MessageSquare className="w-6 h-6 mr-2 text-indigo-600" />
                 Describe Your Complaint (Optional)
               </h2>
@@ -797,10 +807,10 @@ const GrievEaseApp = () => {
                 value={complaintText}
                 onChange={(e) => setComplaintText(e.target.value)}
                 placeholder="Describe the issue you're facing... (e.g., 'There is a large pothole on Main Street causing traffic issues' or 'Garbage bins haven't been collected for 3 days')"
-                className="w-full h-48 px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none resize-none text-gray-700 placeholder-gray-400"
+                className="w-full h-48 px-4 py-3 border-2 border-gray-200 dark:border-gray-600 rounded-xl focus:border-blue-500 focus:outline-none resize-none text-gray-700 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700"
               />
               
-              <div className="mt-4 flex items-center justify-between text-sm text-gray-500">
+              <div className="mt-4 flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
                 <span>{complaintText.length} characters</span>
                 <span className="flex items-center">
                   <Brain className="w-4 h-4 mr-1" />
@@ -833,25 +843,25 @@ const GrievEaseApp = () => {
             </button>
 
             {processingStage && isProcessing && (
-              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-center">
+              <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-xl p-4 flex items-center">
                 <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mr-3" />
-                <p className="text-blue-700 text-sm font-medium">{processingStage}</p>
+                <p className="text-blue-700 dark:text-blue-300 text-sm font-medium">{processingStage}</p>
               </div>
             )}
 
             {error && (
-              <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start">
+              <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-xl p-4 flex items-start">
                 <AlertCircle className="w-5 h-5 text-red-500 mr-2 flex-shrink-0 mt-0.5" />
-                <p className="text-red-700 text-sm">{error}</p>
+                <p className="text-red-700 dark:text-red-400 text-sm">{error}</p>
               </div>
             )}
 
             {submitSuccess && (
-              <div className="bg-green-50 border border-green-200 rounded-xl p-4 flex items-start">
+              <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-xl p-4 flex items-start">
                 <CheckCircle2 className="w-5 h-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-green-700 font-medium">Complaint Submitted Successfully!</p>
-                  <p className="text-green-600 text-sm mt-1">Your complaint has been saved to the database.</p>
+                  <p className="text-green-700 dark:text-green-400 font-medium">Complaint Submitted Successfully!</p>
+                  <p className="text-green-600 dark:text-green-300 text-sm mt-1">Your complaint has been saved to the database.</p>
                 </div>
               </div>
             )}
@@ -862,17 +872,17 @@ const GrievEaseApp = () => {
 
           {/* Results Section */}
           <div>
-            <div className="bg-white rounded-2xl shadow-lg p-8 sticky top-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 sticky top-8">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6 flex items-center">
                 <FileText className="w-6 h-6 mr-2 text-indigo-600" />
                 AI Analysis Results
               </h2>
 
               {!results && !isProcessing && (
                 <div className="text-center py-16">
-                  <Image className="w-20 h-20 mx-auto text-gray-300 mb-4" />
-                  <p className="text-gray-500 text-lg">Add image or text to see AI analysis</p>
-                  <p className="text-gray-400 text-sm mt-2">
+                  <Image className="w-20 h-20 mx-auto text-gray-300 dark:text-gray-600 mb-4" />
+                  <p className="text-gray-500 dark:text-gray-400 text-lg">Add image or text to see AI analysis</p>
+                  <p className="text-gray-400 dark:text-gray-500 text-sm mt-2">
                     You can use either image alone, text alone, or both together
                   </p>
                 </div>
@@ -881,22 +891,22 @@ const GrievEaseApp = () => {
               {isProcessing && (
                 <div className="text-center py-16">
                   <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-                  <p className="text-gray-700 text-lg font-medium">Processing with AI...</p>
-                  <p className="text-gray-500 text-sm mt-2">Running multiple AI models for accurate analysis</p>
+                  <p className="text-gray-700 dark:text-gray-300 text-lg font-medium">Processing with AI...</p>
+                  <p className="text-gray-500 dark:text-gray-400 text-sm mt-2">Running multiple AI models for accurate analysis</p>
                 </div>
               )}
 
               {results && (
                 <div className="space-y-4 animate-fadeIn">
                   {/* Analysis Source */}
-                  <div className="bg-indigo-50 p-3 rounded-lg border border-indigo-100">
-                    <p className="text-xs font-medium text-indigo-700">Analysis Method: {results.analysisSource}</p>
+                  <div className="bg-indigo-50 dark:bg-indigo-900/30 p-3 rounded-lg border border-indigo-100 dark:border-indigo-800">
+                    <p className="text-xs font-medium text-indigo-700 dark:text-indigo-300">Analysis Method: {results.analysisSource}</p>
                   </div>
 
                   {/* Category with Edit Option */}
-                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-5 rounded-xl border border-blue-100">
+                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 p-5 rounded-xl border border-blue-100 dark:border-blue-800">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-gray-600">Detected Category</span>
+                      <span className="text-sm font-medium text-gray-600 dark:text-gray-300">Detected Category</span>
                       <div className="flex items-center space-x-2">
                         <AlertCircle className="w-5 h-5 text-blue-600" />
                         {!isEditingCategory ? (
@@ -910,7 +920,7 @@ const GrievEaseApp = () => {
                         ) : (
                           <button
                             onClick={() => setIsEditingCategory(false)}
-                            className="text-gray-600 hover:text-gray-700 p-1 rounded"
+                            className="text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 p-1 rounded"
                             title="Cancel edit"
                           >
                             <X className="w-4 h-4" />
@@ -920,12 +930,12 @@ const GrievEaseApp = () => {
                     </div>
                     
                     {!isEditingCategory ? (
-                      <p className="text-2xl font-bold text-gray-900">{results.category}</p>
+                      <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{results.category}</p>
                     ) : (
                       <select
                         value={selectedCategory}
                         onChange={(e) => handleCategoryChange(e.target.value)}
-                        className="w-full text-xl font-bold text-gray-900 bg-white border-2 border-blue-300 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500"
+                        className="w-full text-xl font-bold text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 border-2 border-blue-300 dark:border-blue-500 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500"
                       >
                         {CATEGORIES.map(cat => (
                           <option key={cat} value={cat}>{cat}</option>
@@ -934,11 +944,11 @@ const GrievEaseApp = () => {
                     )}
                     
                     {results.imageDescription && (
-                      <p className="text-xs text-gray-500 mt-2">Image shows: {results.imageDescription}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">Image shows: {results.imageDescription}</p>
                     )}
                     
                     {isEditingCategory && (
-                      <p className="text-xs text-blue-600 mt-2 flex items-center">
+                      <p className="text-xs text-blue-600 dark:text-blue-400 mt-2 flex items-center">
                         <AlertCircle className="w-3 h-3 mr-1" />
                         Category changed manually - department will update automatically
                       </p>
@@ -947,24 +957,24 @@ const GrievEaseApp = () => {
 
                   {/* Confidence & Emotion */}
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-green-50 p-4 rounded-xl border border-green-100">
+                    <div className="bg-green-50 dark:bg-green-900/30 p-4 rounded-xl border border-green-100 dark:border-green-800">
                       <div className="flex items-center mb-2">
                         <TrendingUp className="w-4 h-4 text-green-600 mr-2" />
-                        <span className="text-xs font-medium text-gray-600">Confidence</span>
+                        <span className="text-xs font-medium text-gray-600 dark:text-gray-300">Confidence</span>
                       </div>
-                      <p className="text-xl font-bold text-green-700">
+                      <p className="text-xl font-bold text-green-700 dark:text-green-400">
                         {(results.confidence * 100).toFixed(1)}%
                       </p>
                     </div>
                     
-                    <div className="bg-purple-50 p-4 rounded-xl border border-purple-100">
+                    <div className="bg-purple-50 dark:bg-purple-900/30 p-4 rounded-xl border border-purple-100 dark:border-purple-800">
                       <div className="flex items-center mb-2">
                         <Brain className="w-4 h-4 text-purple-600 mr-2" />
-                        <span className="text-xs font-medium text-gray-600">Emotion</span>
+                        <span className="text-xs font-medium text-gray-600 dark:text-gray-300">Emotion</span>
                       </div>
-                      <p className="text-xl font-bold text-purple-700">{results.emotion}</p>
+                      <p className="text-xl font-bold text-purple-700 dark:text-purple-400">{results.emotion}</p>
                       {results.rawSentiment && (
-                        <p className="text-xs text-purple-600 mt-1">
+                        <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">
                           ({results.rawSentiment} - {(results.sentimentConfidence * 100).toFixed(0)}%)
                         </p>
                       )}
@@ -972,50 +982,50 @@ const GrievEaseApp = () => {
                   </div>
 
                   {/* Department */}
-                  <div className="bg-amber-50 p-5 rounded-xl border border-amber-100">
+                  <div className="bg-amber-50 dark:bg-amber-900/30 p-5 rounded-xl border border-amber-100 dark:border-amber-800">
                     <div className="flex items-center mb-2">
                       <Building2 className="w-5 h-5 text-amber-600 mr-2" />
-                      <span className="text-sm font-medium text-gray-600">Assigned Department</span>
+                      <span className="text-sm font-medium text-gray-600 dark:text-gray-300">Assigned Department</span>
                     </div>
-                    <p className="text-lg font-semibold text-gray-900">{results.department}</p>
+                    <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">{results.department}</p>
                   </div>
 
                   {/* Priority & Time */}
                   <div className="grid grid-cols-2 gap-4">
                     <div className={`p-4 rounded-xl border ${
-                      results.priority === 'High' ? 'bg-red-50 border-red-100' :
-                      results.priority === 'Medium' ? 'bg-yellow-50 border-yellow-100' :
-                      'bg-blue-50 border-blue-100'
+                      results.priority === 'High' ? 'bg-red-50 dark:bg-red-900/30 border-red-100 dark:border-red-800' :
+                      results.priority === 'Medium' ? 'bg-yellow-50 dark:bg-yellow-900/30 border-yellow-100 dark:border-yellow-800' :
+                      'bg-blue-50 dark:bg-blue-900/30 border-blue-100 dark:border-blue-800'
                     }`}>
-                      <span className="text-xs font-medium text-gray-600">Priority Level</span>
+                      <span className="text-xs font-medium text-gray-600 dark:text-gray-300">Priority Level</span>
                       <p className={`text-lg font-bold mt-1 ${
-                        results.priority === 'High' ? 'text-red-700' :
-                        results.priority === 'Medium' ? 'text-yellow-700' :
-                        'text-blue-700'
+                        results.priority === 'High' ? 'text-red-700 dark:text-red-400' :
+                        results.priority === 'Medium' ? 'text-yellow-700 dark:text-yellow-400' :
+                        'text-blue-700 dark:text-blue-400'
                       }`}>{results.priority}</p>
                     </div>
                     
-                    <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
+                    <div className="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-xl border border-blue-100 dark:border-blue-800">
                       <div className="flex items-center mb-1">
                         <Clock className="w-4 h-4 text-blue-600 mr-1" />
-                        <span className="text-xs font-medium text-gray-600">Est. Time</span>
+                        <span className="text-xs font-medium text-gray-600 dark:text-gray-300">Est. Time</span>
                       </div>
-                      <p className="text-lg font-bold text-blue-700">{results.estimatedTime}</p>
+                      <p className="text-lg font-bold text-blue-700 dark:text-blue-400">{results.estimatedTime}</p>
                     </div>
                   </div>
 
                   {/* Sentiment & Urgency */}
-                  <div className="bg-gray-50 p-5 rounded-xl border border-gray-200">
-                    <h4 className="text-sm font-semibold text-gray-700 mb-3">Sentiment Analysis</h4>
+                  <div className="bg-gray-50 dark:bg-gray-700/50 p-5 rounded-xl border border-gray-200 dark:border-gray-600">
+                    <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">Sentiment Analysis</h4>
                     <div className="space-y-2">
                       
                       <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-600">Urgency Score:</span>
-                        <span className="text-sm font-medium text-gray-900">
+                        <span className="text-sm text-gray-600 dark:text-gray-300">Urgency Score:</span>
+                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
                           {(results.urgency * 100).toFixed(0)}%
                         </span>
                       </div>
-                      <div className="w-full bg-gray-200 rounded-full h-3 mt-2">
+                      <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-3 mt-2">
                         <div
                           className={`h-3 rounded-full transition-all duration-500 ${
                             results.urgency > 0.7 ? 'bg-gradient-to-r from-orange-500 to-red-600' :
@@ -1025,7 +1035,7 @@ const GrievEaseApp = () => {
                           style={{ width: `${results.urgency * 100}%` }}
                         />
                       </div>
-                      <p className="text-xs text-gray-500 mt-2">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
                         {results.urgency > 0.7 ? '⚠️ High urgency - needs immediate attention' :
                          results.urgency > 0.5 ? '⏱️ Moderate urgency - timely response needed' :
                          '✓ Low urgency - routine maintenance'}
@@ -1035,13 +1045,13 @@ const GrievEaseApp = () => {
 
                   {/* Alternative Categories */}
                   {results.textAnalysis && results.textAnalysis.length > 1 && (
-                    <div className="bg-indigo-50 p-5 rounded-xl border border-indigo-100">
-                      <h4 className="text-sm font-semibold text-gray-700 mb-3">Alternative Matches</h4>
+                    <div className="bg-indigo-50 dark:bg-indigo-900/30 p-5 rounded-xl border border-indigo-100 dark:border-indigo-800">
+                      <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">Alternative Matches</h4>
                       <div className="space-y-2">
                         {results.textAnalysis.slice(1, 3).map((alt, idx) => (
                           <div key={idx} className="flex justify-between items-center text-sm">
-                            <span className="text-gray-600">{alt.category}</span>
-                            <span className="font-medium text-indigo-700">
+                            <span className="text-gray-600 dark:text-gray-300">{alt.category}</span>
+                            <span className="font-medium text-indigo-700 dark:text-indigo-400">
                               {(alt.score * 100).toFixed(1)}%
                             </span>
                           </div>
@@ -1080,7 +1090,7 @@ const GrievEaseApp = () => {
                     </button>
                     <button
                       onClick={resetForm}
-                      className="w-full bg-gray-100 text-gray-700 py-3 rounded-xl font-medium hover:bg-gray-200 transition-all duration-200"
+                      className="w-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 py-3 rounded-xl font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-200"
                     >
                       Start New Analysis
                     </button>
@@ -1093,7 +1103,7 @@ const GrievEaseApp = () => {
       </div>
 
       {/* Footer */}
-      <div className="bg-white border-t border-gray-200 mt-12">
+      <div className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0">
             <div className="flex items-center space-x-3">
@@ -1101,16 +1111,16 @@ const GrievEaseApp = () => {
                 <Sparkles className="w-5 h-5 text-white" />
               </div>
               <div>
-                <p className="font-bold text-gray-900">GrievEase</p>
-                <p className="text-xs text-gray-500">AI-Powered Complaint Analysis System</p>
+                <p className="font-bold text-gray-900 dark:text-gray-100">GrievEase</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">AI-Powered Complaint Analysis System</p>
               </div>
             </div>
-            <div className="flex items-center space-x-6 text-sm text-gray-500">
+            <div className="flex items-center space-x-6 text-sm text-gray-500 dark:text-gray-400">
               <a href="/" className="hover:text-blue-600 transition-colors">Home</a>
               <a href="/track" className="hover:text-blue-600 transition-colors">Track Complaint</a>
               <button onClick={() => setShowAbout(true)} className="hover:text-blue-600 transition-colors">About</button>
             </div>
-            <p className="text-sm text-gray-400">© 2026 GrievEase. All rights reserved.</p>
+            <p className="text-sm text-gray-400 dark:text-gray-500">© 2026 GrievEase. All rights reserved.</p>
           </div>
         </div>
       </div>

@@ -35,7 +35,7 @@ export async function POST(request) {
 
     return Response.json({
       success: true,
-      complaintId: result.insertedId,
+      complaintId: result.insertedId.toString(),
       message: 'Complaint submitted successfully'
     }, { status: 201 });
 

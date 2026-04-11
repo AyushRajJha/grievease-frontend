@@ -1110,7 +1110,7 @@ const GrievEaseApp = () => {
               <a href="/track" className="hover:text-blue-600 transition-colors">Track Complaint</a>
               <button onClick={() => setShowAbout(true)} className="hover:text-blue-600 transition-colors">About</button>
             </div>
-            <p className="text-sm text-gray-400">© 2025 GrievEase. All rights reserved.</p>
+            <p className="text-sm text-gray-400">© 2026 GrievEase. All rights reserved.</p>
           </div>
         </div>
       </div>

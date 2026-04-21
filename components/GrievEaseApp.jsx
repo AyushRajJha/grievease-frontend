@@ -708,7 +708,7 @@ const GrievEaseApp = () => {
             )}
             <div className="space-y-3">
               <button
-                onClick={() => window.open(`/track?id=${submittedComplaintId}`, '_blank')}
+                onClick={() => { window.location.href = submittedComplaintId ? `/track?id=${encodeURIComponent(submittedComplaintId)}` : '/track'; }}
                 className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-xl font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-lg flex items-center justify-center space-x-2"
               >
                 <FileText className="w-5 h-5" />

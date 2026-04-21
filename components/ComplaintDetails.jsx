@@ -28,17 +28,32 @@ const SENTIMENT_CONFIG = {
   positive: { label: 'Positive', color: 'text-green-600 dark:text-green-400', icon: '😊' },
 };
 
+function parseEstimatedHours(estimatedTime) {
+  if (!estimatedTime || typeof estimatedTime !== 'string') return null;
+  let total = 0;
+  const dayMatch = estimatedTime.match(/(\d+)\s*days?/i);
+  const hourMatch = estimatedTime.match(/(\d+)\s*hours?/i);
+  if (!dayMatch && !hourMatch) return null;
+  if (dayMatch) total += parseInt(dayMatch[1], 10) * 24;
+  if (hourMatch) total += parseInt(hourMatch[1], 10);
+  return total > 0 ? total : null;
+}
+
 function getTimelineStages(complaint) {
   const createdAt = new Date(complaint.createdAt);
   const MS_PER_HOUR = 60 * 60 * 1000;
   const hoursPassed = (Date.now() - createdAt.getTime()) / MS_PER_HOUR;
+
+  const estimatedHours = parseEstimatedHours(complaint.estimatedTime);
+  const resolvedThreshold = estimatedHours !== null ? estimatedHours : 72;
+  const isResolved = hoursPassed >= resolvedThreshold;
 
   return [
     { id: 1, title: 'Submitted', description: 'Complaint received and recorded.', icon: '📋', completedAt: createdAt.toLocaleString(), done: true },
     { id: 2, title: 'Under Review', description: 'Team is reviewing your complaint.', icon: '🔍', completedAt: hoursPassed >= 1 ? new Date(createdAt.getTime() + 1 * MS_PER_HOUR).toLocaleString() : null, done: hoursPassed >= 1 },
     { id: 3, title: 'Assigned', description: `Assigned to ${complaint.department}.`, icon: '🏢', completedAt: hoursPassed >= 6 ? new Date(createdAt.getTime() + 6 * MS_PER_HOUR).toLocaleString() : null, done: hoursPassed >= 6 },
     { id: 4, title: 'In Progress', description: 'Department is actively working on it.', icon: '⚙️', completedAt: hoursPassed >= 24 ? new Date(createdAt.getTime() + 24 * MS_PER_HOUR).toLocaleString() : null, done: hoursPassed >= 24 },
-    { id: 5, title: 'Resolved', description: 'Complaint successfully resolved.', icon: '✅', completedAt: null, done: false },
+    { id: 5, title: 'Resolved', description: 'Complaint successfully resolved.', icon: '✅', completedAt: isResolved ? new Date(createdAt.getTime() + resolvedThreshold * MS_PER_HOUR).toLocaleString() : null, done: isResolved },
   ];
 }
 

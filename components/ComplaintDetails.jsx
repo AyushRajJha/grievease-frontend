@@ -31,8 +31,8 @@ const SENTIMENT_CONFIG = {
 function parseEstimatedHours(estimatedTime) {
   if (!estimatedTime || typeof estimatedTime !== 'string') return null;
   let total = 0;
-  const dayMatch = estimatedTime.match(/(\d+)\s*day/i);
-  const hourMatch = estimatedTime.match(/(\d+)\s*hour/i);
+  const dayMatch = estimatedTime.match(/(\d+)\s*days?/i);
+  const hourMatch = estimatedTime.match(/(\d+)\s*hours?/i);
   if (!dayMatch && !hourMatch) return null;
   if (dayMatch) total += parseInt(dayMatch[1], 10) * 24;
   if (hourMatch) total += parseInt(hourMatch[1], 10);

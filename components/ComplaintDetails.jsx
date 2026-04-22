@@ -87,7 +87,8 @@ export default function ComplaintDetails({ complaint }) {
   const progress = getProgressPercent(stages);
   const doneCount = stages.filter(s => s.done).length;
   const priority = PRIORITY_CONFIG[complaint.priority] || PRIORITY_CONFIG.Low;
-  const sentiment = SENTIMENT_CONFIG[complaint.sentiment?.toLowerCase()] || SENTIMENT_CONFIG.neutral;
+  const sentimentKey = complaint.sentiment?.split(' ')[0]?.toLowerCase() || 'neutral';
+  const sentiment = SENTIMENT_CONFIG[sentimentKey] || SENTIMENT_CONFIG.neutral;
   const urgencyString = typeof complaint.urgency === 'number'
     ? (complaint.urgency > URGENCY_HIGH_THRESHOLD ? 'high' : complaint.urgency > URGENCY_MEDIUM_THRESHOLD ? 'medium' : 'low')
     : complaint.urgency?.toLowerCase();

@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, Suspense, useCallback } from 'react';
+import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import {
   Search, Sparkles, ArrowLeft, AlertCircle, Moon, Sun, Menu, X
@@ -119,13 +120,13 @@ function TrackingContent() {
 
           {/* Right — back + theme */}
           <div className="flex items-center space-x-3">
-            <a
+            <Link
               href="/"
               className="flex items-center space-x-1.5 text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-medium transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
               <span className="hidden sm:inline">Back to Home</span>
-            </a>
+            </Link>
             <button
               onClick={toggleTheme}
               aria-label="Toggle dark mode"

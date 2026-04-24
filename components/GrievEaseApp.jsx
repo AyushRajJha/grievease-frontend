@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useRef } from 'react';
-import { Upload, Camera, AlertCircle, Clock, Building2, TrendingUp, Sparkles, CheckCircle2, FileText, Brain, Image, MessageSquare, Zap, Edit2, Check, X, Moon, Sun } from 'lucide-react';
+import Link from 'next/link';
+import { Upload, Camera, AlertCircle, Clock, Building2, TrendingUp, Sparkles, CheckCircle2, FileText, Brain, Image as ImageIcon, MessageSquare, Zap, Edit2, Check, X, Moon, Sun } from 'lucide-react';
 import { useTheme } from '@/context/ThemeContext';
 
 const compressAndEncodeImage = async (file) => {
@@ -54,6 +55,151 @@ const compressAndEncodeImage = async (file) => {
   });
 };
 
+const CATEGORY_ROUTE_MAP = {
+  'garbage issue': { dept: 'Sanitation Department', priority: 'Medium', time: '24-48 hours' },
+  'sanitation': { dept: 'Sanitation Department', priority: 'Medium', time: '24-48 hours' },
+  'street cleaning': { dept: 'Sanitation Department', priority: 'Medium', time: '24-48 hours' },
+  'garbage overflow': { dept: 'Sanitation Department', priority: 'High', time: '12-24 hours' },
+  'street littering': { dept: 'Sanitation Department', priority: 'Medium', time: '24-48 hours' },
+  'waste dumping': { dept: 'Sanitation Department', priority: 'High', time: '24-48 hours' },
+  'illegal dumping': { dept: 'Sanitation Department', priority: 'High', time: '24-48 hours' },
+  'water leakage': { dept: 'Water & Sewerage Board', priority: 'High', time: '12-24 hours' },
+  'water supply': { dept: 'Water & Sewerage Board', priority: 'High', time: '12-24 hours' },
+  'pipe burst': { dept: 'Water & Sewerage Board', priority: 'High', time: '8-12 hours' },
+  'road damage': { dept: 'Public Works Department', priority: 'High', time: '3-5 days' },
+  'pothole': { dept: 'Public Works Department', priority: 'High', time: '3-5 days' },
+  'damaged road': { dept: 'Public Works Department', priority: 'High', time: '3-5 days' },
+  'cracked road': { dept: 'Public Works Department', priority: 'Medium', time: '5-7 days' },
+  'road erosion': { dept: 'Public Works Department', priority: 'High', time: '2-4 days' },
+  'street light issue': { dept: 'Electrical Department', priority: 'Medium', time: '48-72 hours' },
+  'streetlight not working': { dept: 'Electrical Department', priority: 'Medium', time: '48-72 hours' },
+  'flickering streetlight': { dept: 'Electrical Department', priority: 'Low', time: '48-72 hours' },
+  'electricity outage': { dept: 'Electrical Department', priority: 'High', time: '4-8 hours' },
+  'exposed electric wires': { dept: 'Electrical Department', priority: 'Critical', time: '2-4 hours' },
+  'drainage problem': { dept: 'Storm Water Drainage', priority: 'High', time: '24-48 hours' },
+  'drainage blockage': { dept: 'Storm Water Drainage', priority: 'High', time: '12-24 hours' },
+  'waterlogging': { dept: 'Storm Water Drainage', priority: 'High', time: '12-24 hours' },
+  'open manhole': { dept: 'Storm Water Drainage', priority: 'Critical', time: '4-8 hours' },
+  'flooded road': { dept: 'Storm Water Drainage', priority: 'High', time: '12-24 hours' },
+  'noise complaint': { dept: 'Police Department', priority: 'Medium', time: '2-4 hours' },
+  'law & order issue': { dept: 'Police Department', priority: 'High', time: '2-4 hours' },
+  'misbehavior': { dept: 'Police Department', priority: 'Medium', time: '2-4 hours' },
+  'public nuisance area': { dept: 'Police Department', priority: 'Medium', time: '4-8 hours' },
+  'park maintenance': { dept: 'Parks & Recreation', priority: 'Low', time: '3-5 days' },
+  'damaged public bench': { dept: 'Parks & Recreation', priority: 'Low', time: '3-5 days' },
+  'building violation': { dept: 'Building Inspector', priority: 'Low', time: '5-7 days' },
+  'illegal construction': { dept: 'Building Inspector', priority: 'High', time: '2-4 days' },
+  'unsafe abandoned building': { dept: 'Building Inspector', priority: 'High', time: '1-2 days' },
+  'cracked building wall': { dept: 'Building Inspector', priority: 'High', time: '1-2 days' },
+  'footpath encroachment': { dept: 'Urban Development Department', priority: 'Medium', time: '2-4 days' },
+  'unstable hoarding': { dept: 'Urban Development Department', priority: 'High', time: '12-24 hours' },
+  'public health': { dept: 'Public Health Department', priority: 'Medium', time: '1-2 days' },
+  'dirty public toilet': { dept: 'Public Health Department', priority: 'Medium', time: '1-2 days' },
+  'clogged toilet': { dept: 'Public Health Department', priority: 'Medium', time: '1-2 days' },
+  'overflowing urinal': { dept: 'Public Health Department', priority: 'Medium', time: '1-2 days' },
+  'hospital service issue': { dept: 'Health Services Department', priority: 'High', time: '1-2 days' },
+  'pharmacy issue': { dept: 'Health Services Department', priority: 'Medium', time: '1-2 days' },
+  'medical negligence': { dept: 'Health Services Department', priority: 'High', time: '1-2 days' },
+  'pollution': { dept: 'Environmental Department', priority: 'Medium', time: '2-3 days' },
+  'environmental hazard': { dept: 'Environmental Department', priority: 'High', time: '1-2 days' },
+  'visible smoke air pollution': { dept: 'Environmental Department', priority: 'High', time: '12-24 hours' },
+  'burning garbage': { dept: 'Environmental Department', priority: 'High', time: '12-24 hours' },
+  'chemical waste dumping': { dept: 'Environmental Department', priority: 'Critical', time: '4-8 hours' },
+  'traffic signal not working': { dept: 'Traffic Department', priority: 'High', time: '8-12 hours' },
+  'damaged traffic signal': { dept: 'Traffic Department', priority: 'High', time: '8-12 hours' },
+  'illegal parking': { dept: 'Traffic Department', priority: 'Medium', time: '4-8 hours' },
+  'double parking': { dept: 'Traffic Department', priority: 'Medium', time: '4-8 hours' },
+  'public transport': { dept: 'Transport Department', priority: 'Medium', time: '1-2 days' },
+  'train/bus delay': { dept: 'Transport Department', priority: 'Medium', time: '1-2 days' },
+  'ticketing failure': { dept: 'Transport Department', priority: 'Low', time: '1-2 days' },
+  'taxi/ride failure': { dept: 'Transport Department', priority: 'Low', time: '1-2 days' },
+  'broken bus stop': { dept: 'Transport Department', priority: 'Medium', time: '2-4 days' },
+  'broken metro station': { dept: 'Transport Department', priority: 'High', time: '2-4 days' },
+  'stray dog menace': { dept: 'Animal Welfare Department', priority: 'High', time: '8-12 hours' },
+  'injured stray animal': { dept: 'Animal Welfare Department', priority: 'High', time: '4-8 hours' },
+  'animal carcass': { dept: 'Animal Welfare Department', priority: 'High', time: '4-8 hours' },
+  'snake in public area': { dept: 'Animal Welfare Department', priority: 'Critical', time: '1-2 hours' },
+};
+
+const EMOTION_SENTIMENT_MAP = {
+  angry: 'Negative - Urgent Attention',
+  annoyed: 'Negative - Needs Attention',
+  concerned: 'Negative - Needs Attention',
+  confused: 'Neutral - Needs Clarification',
+  disappointed: 'Negative - Needs Attention',
+  frustrated: 'Negative - Urgent Attention',
+  sad: 'Negative - Needs Attention',
+  shocked: 'Negative - Urgent Attention',
+  urgent: 'Negative - Urgent Attention',
+  calm: 'Positive - Constructive',
+  neutral: 'Neutral - Reporting Issue',
+};
+
+const PRIORITY_RANK = {
+  Low: 1,
+  Medium: 2,
+  High: 3,
+  Critical: 4,
+};
+
+function normalizeCategory(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function formatCategoryLabel(value) {
+  return String(value || '')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .split(' ')
+    .map((word) => {
+      if (!word) return word;
+      if (word.toUpperCase() === 'ATM') return 'ATM';
+      return word.charAt(0).toUpperCase() + word.slice(1);
+    })
+    .join(' ');
+}
+
+function deriveSentiment(emotion) {
+  return EMOTION_SENTIMENT_MAP[String(emotion || '').trim().toLowerCase()] || 'Neutral - Reporting Issue';
+}
+
+function getHigherPriority(firstPriority, secondPriority) {
+  return (PRIORITY_RANK[secondPriority] || 0) > (PRIORITY_RANK[firstPriority] || 0)
+    ? secondPriority
+    : firstPriority;
+}
+
+function categorizeComplaint(category) {
+  const normalized = normalizeCategory(category);
+
+  if (CATEGORY_ROUTE_MAP[normalized]) {
+    return CATEGORY_ROUTE_MAP[normalized];
+  }
+
+  const keywordRules = [
+    { match: ['road', 'pothole', 'bench', 'signboard', 'metro', 'infrastructure'], dept: 'Public Works Department', priority: 'Medium', time: '3-5 days' },
+    { match: ['water', 'pipe', 'supply'], dept: 'Water & Sewerage Board', priority: 'High', time: '12-24 hours' },
+    { match: ['drain', 'manhole', 'waterlogging'], dept: 'Storm Water Drainage', priority: 'High', time: '12-24 hours' },
+    { match: ['streetlight', 'electric', 'outage'], dept: 'Electrical Department', priority: 'High', time: '24-48 hours' },
+    { match: ['garbage', 'sanitation', 'litter', 'waste'], dept: 'Sanitation Department', priority: 'Medium', time: '24-48 hours' },
+    { match: ['health', 'hospital', 'medical', 'pharmacy', 'toilet', 'urinal'], dept: 'Public Health Department', priority: 'Medium', time: '1-2 days' },
+    { match: ['pollution', 'environment', 'smoke', 'chemical'], dept: 'Environmental Department', priority: 'High', time: '1-2 days' },
+    { match: ['traffic', 'transport', 'parking', 'taxi', 'train', 'bus', 'ticket'], dept: 'Transport Department', priority: 'Medium', time: '1-2 days' },
+    { match: ['noise', 'law', 'misbehavior', 'nuisance', 'safety', 'accident'], dept: 'Police Department', priority: 'Medium', time: '2-4 hours' },
+    { match: ['building', 'construction', 'hoarding', 'encroachment', 'land records'], dept: 'Building Inspector', priority: 'Medium', time: '2-4 days' },
+    { match: ['animal', 'stray', 'snake'], dept: 'Animal Welfare Department', priority: 'High', time: '4-8 hours' },
+    { match: ['education'], dept: 'Education Department', priority: 'Medium', time: '2-4 days' },
+    { match: ['tax'], dept: 'Tax Department', priority: 'Medium', time: '2-4 days' },
+    { match: ['government', 'document', 'public welfare'], dept: 'Civic Administration', priority: 'Medium', time: '2-4 days' },
+    { match: ['bank', 'atm', 'refund', 'billing', 'product', 'delivery', 'fraud'], dept: 'Consumer Affairs Department', priority: 'Medium', time: '2-4 days' },
+  ];
+
+  const matchedRule = keywordRules.find((rule) => rule.match.some((keyword) => normalized.includes(keyword)));
+  return matchedRule || { dept: 'General Administration', priority: 'Medium', time: '2-3 days' };
+}
+
+const CATEGORIES = Object.keys(CATEGORY_ROUTE_MAP).sort((a, b) => a.localeCompare(b));
+
 const GrievEaseApp = () => {
   const { toggleTheme } = useTheme();
   const [imageFile, setImageFile] = useState(null);
@@ -73,50 +219,6 @@ const GrievEaseApp = () => {
   const [submittedComplaintId, setSubmittedComplaintId] = useState('');
   const [copied, setCopied] = useState(false);
   const fileInputRef = useRef(null);
-
-  // Available complaint categories
-  const CATEGORIES = [
-    'Garbage Issue',
-    'Water Leakage',
-    'Road Damage',
-    'Street Light Issue',
-    'Drainage Problem',
-    'Building Violation',
-    'Noise Complaint',
-    'Park Maintenance'
-  ];
-
-  const categorizeComplaint = (category) => {
-    
-      const departmentMap = {
-        // Your existing text categories
-        'Garbage Issue': { dept: 'Sanitation Department', priority: 'Medium', time: '24-48 hours' },
-        'Water Leakage': { dept: 'Water & Sewerage Board', priority: 'High', time: '12-24 hours' },
-        'Road Damage': { dept: 'Public Works Department', priority: 'High', time: '3-5 days' },
-        'Street Light Issue': { dept: 'Electrical Department', priority: 'Medium', time: '48-72 hours' },
-        'Drainage Problem': { dept: 'Storm Water Drainage', priority: 'High', time: '24-48 hours' },
-        'Building Violation': { dept: 'Building Inspector', priority: 'Low', time: '5-7 days' },
-        'Noise Complaint': { dept: 'Police Department', priority: 'Medium', time: '2-4 hours' },
-        'Park Maintenance': { dept: 'Parks & Recreation', priority: 'Low', time: '3-5 days' },
-  
-        // --- ADD YOUR NEW IMAGE CATEGORIES HERE ---
-        'pothole': { dept: 'Public Works Department', priority: 'High', time: '3-5 days' },
-        'damaged road': { dept: 'Public Works Department', priority: 'High', time: '3-5 days' },
-        'cracked road': { dept: 'Public Works Department', priority: 'Medium', time: '5-7 days' },
-        'road erosion': { dept: 'Public Works Department', priority: 'High', time: '2-4 days' },
-        'garbage overflow': { dept: 'Sanitation Department', priority: 'High', time: '24-48 hours' },
-        'illegal dumping': { dept: 'Sanitation Department', priority: 'Medium', time: '2-3 days' },
-        'open manhole': { dept: 'Storm Water Drainage', priority: 'Critical', time: '4-8 hours' },
-        'streetlight not working': { dept: 'Electrical Department', priority: 'Medium', time: '48-72 hours' },
-        'flooded road': { dept: 'Storm Water Drainage', priority: 'High', time: '12-24 hours' },
-        'dirty public toilet': { dept: 'Public Health Dept.', priority: 'Medium', time: '1-2 days' },
-        'damaged traffic signal': { dept: 'Traffic Department', priority: 'High', time: '8-12 hours' },
-        'snake in public area': { dept: 'Wildlife & Rescue', priority: 'Critical', time: '1-2 hours' },
-      };
-    
-    
-    return departmentMap[category] || { dept: 'General Administration', priority: 'Medium', time: '2-3 days' };
-  };
 
   const handleDrag = (e) => {
     e.preventDefault();
@@ -159,9 +261,8 @@ const GrievEaseApp = () => {
   };
 
   const processComplaint = async () => {
-    // 1. Text is now required by the new Python API
     if (!complaintText.trim()) {
-      setError('Please enter complaint text. The AI model requires it.');
+      setError('Please enter complaint text before running the AI analysis.');
       return;
     }
     
@@ -171,7 +272,7 @@ const GrievEaseApp = () => {
     setSubmitSuccess(false);
     
     try {
-      setProcessingStage('Analyzing with local AI models...');
+      setProcessingStage('Analyzing with GrievEase AI models...');
 
       // 2. Create a FormData object to send
       const formData = new FormData();
@@ -196,72 +297,54 @@ const GrievEaseApp = () => {
         throw new Error(data.error || "AI analysis failed");
       }
 
-      // 5. Get the unified result from your Python model
       const result = data.result;
       console.log("Local AI Result:", result);
-      // 6. Logic to determine the best category for department mapping
       let finalCategory = result.text_category;
       
-      // If text confidence is low (< 50%) AND an image category exists,
-      // trust the image category more for department mapping.
       if (result.text_category_confidence < 0.5 && result.image_category) {
         finalCategory = result.image_category;
       }
 
-      // 7. Get department info using the finalized category
-      const departmentInfo = categorizeComplaint(finalCategory); 
+      const normalizedCategory = normalizeCategory(finalCategory);
+      const departmentInfo = categorizeComplaint(normalizedCategory);
       
-      // Map string urgency from predict.py to a 0-1 score for the UI
       const urgencyMap = {
         "low": 0.3,
         "medium": 0.6,
         "high": 0.9,
       };
-      const urgencyScore = urgencyMap[result.urgency.toLowerCase()] || 0.6;
+      const urgencyScore = urgencyMap[String(result.urgency || '').toLowerCase()] || 0.6;
       
-      // Adjust priority based on the model's urgency
       let adjustedPriority = departmentInfo.priority;
       if (urgencyScore > 0.7) {
-        adjustedPriority = 'High';
+        adjustedPriority = getHigherPriority(adjustedPriority, 'High');
       } else if (urgencyScore < 0.4) {
         adjustedPriority = 'Low';
       }
 
-      // Map your model's emotion to a sentiment string for the UI
-      const sentimentMap = {
-        "anger": "Negative - Urgent Attention",
-        "fear": "Negative - Issue",
-        "sadness": "Negative - Issue",
-        "disgust": "Negative - Issue",
-        "joy": "Positive - Constructive",
-        "optimism": "Positive - Constructive",
-        "love": "Positive - Constructive",
-        "neutral": "Neutral - Reporting Issue"
-      };
-      const sentiment = sentimentMap[result.emotion.toLowerCase()] || 'Neutral - Reporting Issue';
+      const sentiment = deriveSentiment(result.emotion);
+      const readableCategory = formatCategoryLabel(finalCategory);
 
-      // 8. Set the final state object
       setResults({
-        category: finalCategory, // Use the new finalCategory
+        category: readableCategory,
         confidence: result.text_category_confidence,
-        department: departmentInfo.dept, // From new logic
-        priority: adjustedPriority, // Use the re-adjusted priority
-        estimatedTime: result.predicted_resolution_readable, // Use new 'readable' time
+        department: departmentInfo.dept,
+        priority: adjustedPriority,
+        estimatedTime: result.predicted_resolution_readable || departmentInfo.time,
         emotion: result.emotion,
-        sentiment: sentiment,
+        sentiment,
         urgency: urgencyScore,
         imageDescription: result.image_category ? `AI detected: ${result.image_category}` : null,
-        analysisSource: 'Local Python AI Model',
+        analysisSource: 'GrievEase ML API',
         rawSentiment: result.emotion,
         sentimentConfidence: result.emotion_confidence,
-        textAnalysis: null, // This is no longer provided
+        textAnalysis: null,
       });
       
-      setSelectedCategory(finalCategory); // Use the new finalCategory
+      setSelectedCategory(normalizedCategory);
       setProcessingStage("Analysis complete!");
 
     } catch (err) {
-      // The new API sends back detailed errors
       setError("Error processing complaint: " + err.message);
       console.error(err);
     } finally {
@@ -274,10 +357,10 @@ const GrievEaseApp = () => {
     
     setResults(prev => ({
       ...prev,
-      category: newCategory,
+      category: formatCategoryLabel(newCategory),
       department: departmentInfo.dept,
       priority: departmentInfo.priority,
-      estimatedTime: departmentInfo.time,
+      estimatedTime: prev?.estimatedTime || departmentInfo.time,
     }));
     
     setSelectedCategory(newCategory);
@@ -371,12 +454,12 @@ const GrievEaseApp = () => {
             <div className="flex items-center space-x-2 text-sm">
               <Zap className="w-4 h-4 text-yellow-500" />
               <span className="text-gray-600 dark:text-gray-300">Powered by Custom AI Model</span>
-              <a
-              href="/track"
-  className="ml-2 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 px-4 py-1.5 rounded-full text-sm font-medium hover:bg-indigo-200 dark:hover:bg-indigo-800/60 transition-all duration-200 border border-indigo-200 dark:border-indigo-700"
->
-  Track Complaint
-</a>
+              <Link
+                href="/track"
+                className="ml-2 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 px-4 py-1.5 rounded-full text-sm font-medium hover:bg-indigo-200 dark:hover:bg-indigo-800/60 transition-all duration-200 border border-indigo-200 dark:border-indigo-700"
+              >
+                Track Complaint
+              </Link>
 <button
   onClick={() => setShowAbout(true)}
   className="ml-2 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-4 py-1.5 rounded-full text-sm font-medium hover:bg-blue-200 dark:hover:bg-blue-800/60 transition-all duration-200 border border-blue-200 dark:border-blue-700"
@@ -423,7 +506,7 @@ const GrievEaseApp = () => {
                 <span><strong>AI Text Analysis</strong> — DistilBERT model classifies complaint category, emotion and urgency</span>
               </li>
               <li className="flex items-start space-x-2">
-                <Image className="w-5 h-5 text-purple-600 mt-0.5 flex-shrink-0" />
+                <ImageIcon className="w-5 h-5 text-purple-600 mt-0.5 flex-shrink-0" />
                 <span><strong>Image Recognition</strong> — CLIP model detects issues from uploaded photos</span>
               </li>
               <li className="flex items-start space-x-2">
@@ -583,7 +666,7 @@ const GrievEaseApp = () => {
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8">
               <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6 flex items-center">
                 <MessageSquare className="w-6 h-6 mr-2 text-indigo-600" />
-                Describe Your Complaint (Optional)
+                Describe Your Complaint (Required)
               </h2>
               
               <textarea
@@ -597,7 +680,7 @@ const GrievEaseApp = () => {
                 <span>{complaintText.length} characters</span>
                 <span className="flex items-center">
                   <Brain className="w-4 h-4 mr-1" />
-                  AI will analyze your text
+                  Text is required for AI analysis
                 </span>
               </div>
             </div>
@@ -605,9 +688,9 @@ const GrievEaseApp = () => {
             {/* Process Button */}
             <button
               onClick={processComplaint}
-              disabled={isProcessing || (!imageFile && !complaintText.trim())}
+              disabled={isProcessing || !complaintText.trim()}
               className={`w-full py-4 rounded-xl font-semibold text-white transition-all duration-200 shadow-lg flex items-center justify-center space-x-2 ${
-                isProcessing || (!imageFile && !complaintText.trim())
+                isProcessing || !complaintText.trim()
                   ? 'bg-gray-400 cursor-not-allowed'
                   : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 hover:shadow-xl'
               }`}
@@ -663,10 +746,10 @@ const GrievEaseApp = () => {
 
               {!results && !isProcessing && (
                 <div className="text-center py-16">
-                  <Image className="w-20 h-20 mx-auto text-gray-300 dark:text-gray-600 mb-4" />
+                  <ImageIcon className="w-20 h-20 mx-auto text-gray-300 dark:text-gray-600 mb-4" />
                   <p className="text-gray-500 dark:text-gray-400 text-lg">Add image or text to see AI analysis</p>
                   <p className="text-gray-400 dark:text-gray-500 text-sm mt-2">
-                    You can use either image alone, text alone, or both together
+                    Add complaint text to begin analysis. An image is optional.
                   </p>
                 </div>
               )}
@@ -675,7 +758,7 @@ const GrievEaseApp = () => {
                 <div className="text-center py-16">
                   <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
                   <p className="text-gray-700 dark:text-gray-300 text-lg font-medium">Processing with AI...</p>
-                  <p className="text-gray-500 dark:text-gray-400 text-sm mt-2">Running multiple AI models for accurate analysis</p>
+                  <p className="text-gray-500 dark:text-gray-400 text-sm mt-2">Running multiple AI models for accurate analysis. Please wait a few seconds.</p>
                 </div>
               )}
 
@@ -720,8 +803,8 @@ const GrievEaseApp = () => {
                         onChange={(e) => handleCategoryChange(e.target.value)}
                         className="w-full text-xl font-bold text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 border-2 border-blue-300 dark:border-blue-500 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500"
                       >
-                        {CATEGORIES.map(cat => (
-                          <option key={cat} value={cat}>{cat}</option>
+                        {Array.from(new Set([selectedCategory, ...CATEGORIES].filter(Boolean))).map(cat => (
+                          <option key={cat} value={cat}>{formatCategoryLabel(cat)}</option>
                         ))}
                       </select>
                     )}
@@ -899,8 +982,8 @@ const GrievEaseApp = () => {
               </div>
             </div>
             <div className="flex items-center space-x-6 text-sm text-gray-500 dark:text-gray-400">
-              <a href="/" className="hover:text-blue-600 transition-colors">Home</a>
-              <a href="/track" className="hover:text-blue-600 transition-colors">Track Complaint</a>
+              <Link href="/" className="hover:text-blue-600 transition-colors">Home</Link>
+              <Link href="/track" className="hover:text-blue-600 transition-colors">Track Complaint</Link>
               <button onClick={() => setShowAbout(true)} className="hover:text-blue-600 transition-colors">About</button>
             </div>
             <p className="text-sm text-gray-400 dark:text-gray-500">© 2026 GrievEase. All rights reserved.</p>

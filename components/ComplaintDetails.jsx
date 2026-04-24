@@ -7,6 +7,7 @@ import {
 import { useTheme } from '@/context/ThemeContext';
 
 const PRIORITY_CONFIG = {
+  Critical: { label: 'Critical', badge: 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300 border border-rose-200 dark:border-rose-700', dot: 'bg-rose-500' },
   High: { label: 'High', badge: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 border border-red-200 dark:border-red-700', dot: 'bg-red-500' },
   Medium: { label: 'Medium', badge: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300 border border-yellow-200 dark:border-yellow-700', dot: 'bg-yellow-500' },
   Low: { label: 'Low', badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 border border-blue-200 dark:border-blue-700', dot: 'bg-blue-500' },

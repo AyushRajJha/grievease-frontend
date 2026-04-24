@@ -1,15 +1,17 @@
 "use client";
-import { useState, useEffect } from 'react';
+import { useMemo, useState } from 'react';
 import { Search, Trash2, Clock, ChevronRight, FileText, X, AlertCircle } from 'lucide-react';
 import { useTheme } from '@/context/ThemeContext';
 
 const PRIORITY_STYLES = {
+  Critical: 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300',
   High: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
   Medium: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300',
   Low: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
 };
 
 const PRIORITY_DOT = {
+  Critical: 'bg-rose-500',
   High: 'bg-red-500',
   Medium: 'bg-yellow-500',
   Low: 'bg-blue-500',
@@ -27,21 +29,24 @@ function timeAgo(dateString) {
   return `${days}d ago`;
 }
 
+function readHistory() {
+  try {
+    return JSON.parse(localStorage.getItem('complaintHistory') || '[]');
+  } catch {
+    return [];
+  }
+}
+
 export default function ComplaintSidebar({ activeId, onSelect, refreshKey = 0 }) {
   const { isDark } = useTheme();
-  const [history, setHistory] = useState([]);
   const [query, setQuery] = useState('');
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [localRefreshKey, setLocalRefreshKey] = useState(0);
+  const historyVersionKey = `${refreshKey}-${localRefreshKey}`;
 
-  // Load from localStorage on mount and whenever the parent signals a history update
-  useEffect(() => {
-    try {
-      const stored = JSON.parse(localStorage.getItem('complaintHistory') || '[]');
-      setHistory(stored);
-    } catch {
-      setHistory([]);
-    }
-  }, [refreshKey]);
+  const history = useMemo(() => {
+    return historyVersionKey ? readHistory() : [];
+  }, [historyVersionKey]);
 
   const filtered = history.filter((item) => {
     const q = query.toLowerCase();
@@ -54,7 +59,7 @@ export default function ComplaintSidebar({ activeId, onSelect, refreshKey = 0 })
 
   const clearHistory = () => {
     localStorage.removeItem('complaintHistory');
-    setHistory([]);
+    setLocalRefreshKey((prev) => prev + 1);
     setShowClearConfirm(false);
   };
 
@@ -135,7 +140,7 @@ export default function ComplaintSidebar({ activeId, onSelect, refreshKey = 0 })
             {query ? (
               <>
                 <Search className="w-8 h-8 text-gray-300 dark:text-gray-600 mb-2" />
-                <p className="text-xs text-gray-400 dark:text-gray-500">No complaints match "{query}"</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500">No complaints match &quot;{query}&quot;</p>
               </>
             ) : (
               <>

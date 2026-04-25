@@ -167,7 +167,8 @@ function deriveSentiment(emotion) {
 }
 
 function isValidEmail(value) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || '').trim());
+  const email = String(value || '').trim();
+  return /^[^\s@]+@[^\s@]+\.[A-Za-z]{2,}$/.test(email);
 }
 
 function getHigherPriority(firstPriority, secondPriority) {

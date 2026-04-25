@@ -1,3 +1,4 @@
+import nodemailer from 'nodemailer';
 import { MongoClient } from 'mongodb';
 
 const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017';
@@ -32,10 +33,12 @@ function buildBaseUrl(request) {
 }
 
 async function sendComplaintAcknowledgement({ complaint, complaintId, trackingUrl }) {
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey || !complaint.userEmail) return { skipped: true };
+  const gmailUser = process.env.GMAIL_USER;
+  const gmailAppPassword = process.env.GMAIL_APP_PASSWORD;
+  const resendApiKey = process.env.RESEND_API_KEY;
 
-  const from = process.env.RESEND_FROM_EMAIL || 'GrievEase <onboarding@resend.dev>';
+  if (!complaint.userEmail) return { skipped: true };
+
   const safeName = escapeHtml(complaint.userName || 'Citizen');
   const safeComplaintId = escapeHtml(complaintId);
   const safeTrackingUrl = escapeHtml(trackingUrl);
@@ -82,28 +85,51 @@ async function sendComplaintAcknowledgement({ complaint, complaintId, trackingUr
     </div>
   `;
 
-  const response = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-      'User-Agent': 'grievease/1.0',
-    },
-    body: JSON.stringify({
-      from,
-      to: [complaint.userEmail],
+  if (gmailUser && gmailAppPassword) {
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: gmailUser,
+        pass: gmailAppPassword,
+      },
+    });
+
+    return transporter.sendMail({
+      from: `GrievEase <${gmailUser}>`,
+      to: complaint.userEmail,
       subject: `GrievEase complaint submitted: ${complaintId}`,
       text,
       html,
-    }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Resend failed with ${response.status}: ${errorText}`);
+    });
   }
 
-  return response.json();
+  if (resendApiKey) {
+    const from = process.env.RESEND_FROM_EMAIL || 'GrievEase <onboarding@resend.dev>';
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${resendApiKey}`,
+        'Content-Type': 'application/json',
+        'User-Agent': 'grievease/1.0',
+      },
+      body: JSON.stringify({
+        from,
+        to: [complaint.userEmail],
+        subject: `GrievEase complaint submitted: ${complaintId}`,
+        text,
+        html,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Resend failed with ${response.status}: ${errorText}`);
+    }
+
+    return response.json();
+  }
+
+  return { skipped: true };
 }
 
 async function connectToDatabase() {

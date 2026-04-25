@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
-import { Upload, Camera, AlertCircle, Clock, Building2, TrendingUp, Sparkles, CheckCircle2, FileText, Brain, Image as ImageIcon, MessageSquare, Zap, Edit2, Check, X, Moon, Sun } from 'lucide-react';
+import { Upload, Camera, AlertCircle, Clock, Building2, TrendingUp, Sparkles, CheckCircle2, FileText, Brain, Image as ImageIcon, MessageSquare, Zap, Edit2, Check, X, Moon, Sun, User, Mail } from 'lucide-react';
 import { useTheme } from '@/context/ThemeContext';
 
 const compressAndEncodeImage = async (file) => {
@@ -166,6 +166,10 @@ function deriveSentiment(emotion) {
   return EMOTION_SENTIMENT_MAP[String(emotion || '').trim().toLowerCase()] || 'Neutral - Reporting Issue';
 }
 
+function isValidEmail(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || '').trim());
+}
+
 function getHigherPriority(firstPriority, secondPriority) {
   return (PRIORITY_RANK[secondPriority] || 0) > (PRIORITY_RANK[firstPriority] || 0)
     ? secondPriority
@@ -237,6 +241,8 @@ const CATEGORIES = Object.keys(CATEGORY_ROUTE_MAP).sort((a, b) => a.localeCompar
 
 const GrievEaseApp = () => {
   const { toggleTheme } = useTheme();
+  const [userName, setUserName] = useState('');
+  const [userEmail, setUserEmail] = useState('');
   const [imageFile, setImageFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const [complaintText, setComplaintText] = useState('');
@@ -261,6 +267,8 @@ const GrievEaseApp = () => {
   useEffect(() => {
     setSubmittedComplaintId(getStoredLastComplaintId());
   }, []);
+
+  const hasValidUserDetails = userName.trim() && isValidEmail(userEmail);
 
   const handleDrag = (e) => {
     e.preventDefault();
@@ -303,6 +311,16 @@ const GrievEaseApp = () => {
   };
 
   const processComplaint = async () => {
+    if (!userName.trim()) {
+      setError('Please enter your full name before running the AI analysis.');
+      return;
+    }
+
+    if (!isValidEmail(userEmail)) {
+      setError('Please enter a valid email address before running the AI analysis.');
+      return;
+    }
+
     if (!complaintText.trim()) {
       setError('Please enter complaint text before running the AI analysis.');
       return;
@@ -411,6 +429,16 @@ const GrievEaseApp = () => {
 
  const submitComplaint = async () => {
   if (!results) return;
+
+  if (!userName.trim()) {
+    setError('Please enter your full name before submitting the complaint.');
+    return;
+  }
+
+  if (!isValidEmail(userEmail)) {
+    setError('Please enter a valid email address before submitting the complaint.');
+    return;
+  }
   
   setIsSubmitting(true);
   setError(null);
@@ -423,6 +451,8 @@ const GrievEaseApp = () => {
     }
 
     const complaintData = {
+      userName: userName.trim(),
+      userEmail: userEmail.trim().toLowerCase(),
       category: results.category,
       description: complaintText,
       image: compressedImage, // ← Now it's compressed!
@@ -463,6 +493,8 @@ const GrievEaseApp = () => {
 };
 
   const resetForm = () => {
+    setUserName('');
+    setUserEmail('');
     setImageFile(null);
     setPreview(null);
     setComplaintText('');
@@ -639,6 +671,54 @@ const GrievEaseApp = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Input Section */}
           <div className="space-y-6">
+            {/* User Details */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6 flex items-center">
+                <User className="w-6 h-6 mr-2 text-blue-600" />
+                Your Details (Required)
+              </h2>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="userName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Full Name
+                  </label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <input
+                      id="userName"
+                      type="text"
+                      value={userName}
+                      onChange={(e) => setUserName(e.target.value)}
+                      placeholder="Enter your name"
+                      className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 dark:border-gray-600 rounded-xl focus:border-blue-500 focus:outline-none text-gray-700 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="userEmail" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Email Address
+                  </label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <input
+                      id="userEmail"
+                      type="email"
+                      value={userEmail}
+                      onChange={(e) => setUserEmail(e.target.value)}
+                      placeholder="you@example.com"
+                      className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 dark:border-gray-600 rounded-xl focus:border-blue-500 focus:outline-none text-gray-700 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-4">
+                An acknowledgement email with your complaint ID and tracking link will be sent after submission.
+              </p>
+            </div>
+
             {/* Image Upload */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8">
               <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6 flex items-center">
@@ -731,9 +811,9 @@ const GrievEaseApp = () => {
             {/* Process Button */}
             <button
               onClick={processComplaint}
-              disabled={isProcessing || !complaintText.trim()}
+              disabled={isProcessing || !hasValidUserDetails || !complaintText.trim()}
               className={`w-full py-4 rounded-xl font-semibold text-white transition-all duration-200 shadow-lg flex items-center justify-center space-x-2 ${
-                isProcessing || !complaintText.trim()
+                isProcessing || !hasValidUserDetails || !complaintText.trim()
                   ? 'bg-gray-400 cursor-not-allowed'
                   : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 hover:shadow-xl'
               }`}

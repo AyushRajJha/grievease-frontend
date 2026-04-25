@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { Upload, Camera, AlertCircle, Clock, Building2, TrendingUp, Sparkles, CheckCircle2, FileText, Brain, Image as ImageIcon, MessageSquare, Zap, Edit2, Check, X, Moon, Sun } from 'lucide-react';
 import { useTheme } from '@/context/ThemeContext';
@@ -142,6 +142,9 @@ const PRIORITY_RANK = {
   Critical: 4,
 };
 
+const MAX_HISTORY = 10;
+const LAST_SUBMITTED_COMPLAINT_ID_KEY = 'lastSubmittedComplaintId';
+
 function normalizeCategory(value) {
   return String(value || '').trim().toLowerCase();
 }
@@ -167,6 +170,38 @@ function getHigherPriority(firstPriority, secondPriority) {
   return (PRIORITY_RANK[secondPriority] || 0) > (PRIORITY_RANK[firstPriority] || 0)
     ? secondPriority
     : firstPriority;
+}
+
+function getStoredLastComplaintId() {
+  if (typeof window === 'undefined') return '';
+
+  try {
+    return localStorage.getItem(LAST_SUBMITTED_COMPLAINT_ID_KEY) || '';
+  } catch {
+    return '';
+  }
+}
+
+function rememberSubmittedComplaint(complaintId, complaintData) {
+  if (!complaintId || typeof window === 'undefined') return;
+
+  try {
+    const stored = JSON.parse(localStorage.getItem('complaintHistory') || '[]');
+    const entry = {
+      id: String(complaintId),
+      category: complaintData.category,
+      priority: complaintData.priority,
+      department: complaintData.department,
+      timestamp: new Date().toISOString(),
+    };
+    const filtered = stored.filter((item) => item.id !== entry.id);
+    const updated = [entry, ...filtered].slice(0, MAX_HISTORY);
+
+    localStorage.setItem('complaintHistory', JSON.stringify(updated));
+    localStorage.setItem(LAST_SUBMITTED_COMPLAINT_ID_KEY, String(complaintId));
+  } catch {
+    // Tracking history is a convenience feature; submission should not fail if storage is blocked.
+  }
 }
 
 function categorizeComplaint(category) {
@@ -219,6 +254,13 @@ const GrievEaseApp = () => {
   const [submittedComplaintId, setSubmittedComplaintId] = useState('');
   const [copied, setCopied] = useState(false);
   const fileInputRef = useRef(null);
+  const trackComplaintHref = submittedComplaintId
+    ? `/track?id=${encodeURIComponent(submittedComplaintId)}`
+    : '/track';
+
+  useEffect(() => {
+    setSubmittedComplaintId(getStoredLastComplaintId());
+  }, []);
 
   const handleDrag = (e) => {
     e.preventDefault();
@@ -406,6 +448,7 @@ const GrievEaseApp = () => {
 
     if (data.success) {
       setSubmitSuccess(true);
+      rememberSubmittedComplaint(data.complaintId, complaintData);
       setSubmittedComplaintId(data.complaintId);
       setShowThankYou(true);
     } else {
@@ -455,7 +498,7 @@ const GrievEaseApp = () => {
               <Zap className="w-4 h-4 text-yellow-500" />
               <span className="text-gray-600 dark:text-gray-300">Powered by Custom AI Model</span>
               <Link
-                href="/track"
+                href={trackComplaintHref}
                 className="ml-2 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 px-4 py-1.5 rounded-full text-sm font-medium hover:bg-indigo-200 dark:hover:bg-indigo-800/60 transition-all duration-200 border border-indigo-200 dark:border-indigo-700"
               >
                 Track Complaint
@@ -574,7 +617,7 @@ const GrievEaseApp = () => {
             )}
             <div className="space-y-3">
               <button
-                onClick={() => { window.location.href = submittedComplaintId ? `/track?id=${encodeURIComponent(submittedComplaintId)}` : '/track'; }}
+                onClick={() => { window.location.href = trackComplaintHref; }}
                 className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-xl font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-lg flex items-center justify-center space-x-2"
               >
                 <FileText className="w-5 h-5" />

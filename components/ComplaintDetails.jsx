@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import {
   Copy, CheckCircle2, Clock, Building2, BarChart2, Zap,
-  AlertCircle, Share2, Tag, FileText, Smile, Brain
+  AlertCircle, Share2, Tag, FileText, Smile, Brain, MapPin
 } from 'lucide-react';
 import { useTheme } from '@/context/ThemeContext';
 
@@ -204,6 +204,9 @@ export default function ComplaintDetails({ complaint }) {
           </div>
           <InfoCard icon={Building2} label="Department" value={complaint.department} />
           <InfoCard icon={Clock} label="Est. Resolution" value={complaint.estimatedTime} />
+          {complaint.location && (
+            <InfoCard icon={MapPin} label="Location" value={complaint.location} />
+          )}
           <InfoCard
             icon={Clock}
             label="Submitted On"

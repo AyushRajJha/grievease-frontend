@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
-import { Upload, Camera, AlertCircle, Clock, Building2, TrendingUp, Sparkles, CheckCircle2, FileText, Brain, Image as ImageIcon, MessageSquare, Edit2, Check, X, Moon, Sun, User, Mail } from 'lucide-react';
+import { Upload, Camera, AlertCircle, Clock, Building2, TrendingUp, Sparkles, CheckCircle2, FileText, Brain, Image as ImageIcon, MessageSquare, Edit2, Check, X, Moon, Sun, User, Mail, MapPin, Zap } from 'lucide-react';
 import { useTheme } from '@/context/ThemeContext';
 
 const compressAndEncodeImage = async (file) => {
@@ -244,6 +244,7 @@ const GrievEaseApp = () => {
   const { toggleTheme } = useTheme();
   const [userName, setUserName] = useState('');
   const [userEmail, setUserEmail] = useState('');
+  const [userLocation, setUserLocation] = useState('');
   const [imageFile, setImageFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const [complaintText, setComplaintText] = useState('');
@@ -269,7 +270,7 @@ const GrievEaseApp = () => {
     setSubmittedComplaintId(getStoredLastComplaintId());
   }, []);
 
-  const hasValidUserDetails = userName.trim() && isValidEmail(userEmail);
+  const hasValidUserDetails = userName.trim() && userLocation.trim() && isValidEmail(userEmail);
 
   const handleDrag = (e) => {
     e.preventDefault();
@@ -319,6 +320,11 @@ const GrievEaseApp = () => {
 
     if (!isValidEmail(userEmail)) {
       setError('Please enter a valid email address before running the AI analysis.');
+      return;
+    }
+
+    if (!userLocation.trim()) {
+      setError('Please enter the complaint location before running the AI analysis.');
       return;
     }
 
@@ -440,6 +446,11 @@ const GrievEaseApp = () => {
     setError('Please enter a valid email address before submitting the complaint.');
     return;
   }
+
+  if (!userLocation.trim()) {
+    setError('Please enter the complaint location before submitting the complaint.');
+    return;
+  }
   
   setIsSubmitting(true);
   setError(null);
@@ -454,6 +465,7 @@ const GrievEaseApp = () => {
     const complaintData = {
       userName: userName.trim(),
       userEmail: userEmail.trim().toLowerCase(),
+      location: userLocation.trim(),
       category: results.category,
       description: complaintText,
       image: compressedImage, // ← Now it's compressed!
@@ -496,6 +508,7 @@ const GrievEaseApp = () => {
   const resetForm = () => {
     setUserName('');
     setUserEmail('');
+    setUserLocation('');
     setImageFile(null);
     setPreview(null);
     setComplaintText('');
@@ -626,6 +639,7 @@ const GrievEaseApp = () => {
               <p className="text-sm text-gray-600 dark:text-gray-300"><span className="font-medium">Category:</span> {results?.category}</p>
               <p className="text-sm text-gray-600 dark:text-gray-300"><span className="font-medium">Priority:</span> {results?.priority}</p>
               <p className="text-sm text-gray-600 dark:text-gray-300"><span className="font-medium">Department:</span> {results?.department}</p>
+              <p className="text-sm text-gray-600 dark:text-gray-300"><span className="font-medium">Location:</span> {userLocation}</p>
             </div>
             {submittedComplaintId && (
               <div className="bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-700 rounded-xl p-4 mb-6">
@@ -713,8 +727,25 @@ const GrievEaseApp = () => {
                 </div>
               </div>
 
+              <div className="mt-4">
+                <label htmlFor="userLocation" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Location / Address
+                </label>
+                <div className="relative">
+                  <MapPin className="absolute left-3 top-3.5 w-4 h-4 text-gray-400" />
+                  <textarea
+                    id="userLocation"
+                    value={userLocation}
+                    onChange={(e) => setUserLocation(e.target.value)}
+                    placeholder="e.g. Near Model Town railway crossing, Jalandhar"
+                    rows={3}
+                    className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 dark:border-gray-600 rounded-xl focus:border-blue-500 focus:outline-none text-gray-700 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 resize-none"
+                  />
+                </div>
+              </div>
+
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-4">
-                An acknowledgement email with your complaint ID and tracking link will be sent after submission.
+                Add a clear area, landmark, or address so the complaint can be assigned to the correct location after submission.
               </p>
             </div>
 

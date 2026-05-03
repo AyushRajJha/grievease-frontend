@@ -142,6 +142,7 @@ const PRIORITY_RANK = {
   Critical: 4,
 };
 
+const PRIORITY_ORDER = ['Low', 'Medium', 'High', 'Critical'];
 const MAX_HISTORY = 10;
 const LAST_SUBMITTED_COMPLAINT_ID_KEY = 'lastSubmittedComplaintId';
 
@@ -171,10 +172,99 @@ function isValidEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[A-Za-z]{2,}$/.test(email);
 }
 
-function getHigherPriority(firstPriority, secondPriority) {
-  return (PRIORITY_RANK[secondPriority] || 0) > (PRIORITY_RANK[firstPriority] || 0)
-    ? secondPriority
-    : firstPriority;
+function normalizeUrgencyLabel(value, fallbackScore = null) {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (normalized === 'high' || normalized === 'medium' || normalized === 'low') {
+    return normalized;
+  }
+
+  if (typeof fallbackScore === 'number') {
+    if (fallbackScore >= 0.7) return 'high';
+    if (fallbackScore <= 0.4) return 'low';
+  }
+
+  return 'medium';
+}
+
+function shiftPriority(priority, delta) {
+  const currentIndex = PRIORITY_ORDER.indexOf(priority);
+  const safeIndex = currentIndex === -1 ? 1 : currentIndex;
+  const nextIndex = Math.min(PRIORITY_ORDER.length - 1, Math.max(0, safeIndex + delta));
+  return PRIORITY_ORDER[nextIndex];
+}
+
+function derivePriority(basePriority, urgencyLabel) {
+  if (basePriority === 'Critical') return 'Critical';
+
+  const normalizedUrgency = normalizeUrgencyLabel(urgencyLabel);
+  if (normalizedUrgency === 'high') {
+    return shiftPriority(basePriority, 1);
+  }
+
+  if (normalizedUrgency === 'low') {
+    return shiftPriority(basePriority, -1);
+  }
+
+  return basePriority;
+}
+
+function parseDurationToAverageHours(value) {
+  const input = String(value || '').trim().toLowerCase();
+  if (!input) return null;
+
+  const rangeMatch = input.match(/(\d+)\s*-\s*(\d+)\s*(hours?|days?)/i);
+  if (rangeMatch) {
+    const start = Number(rangeMatch[1]);
+    const end = Number(rangeMatch[2]);
+    const unit = rangeMatch[3].toLowerCase();
+    const multiplier = unit.startsWith('day') ? 24 : 1;
+    return ((start + end) / 2) * multiplier;
+  }
+
+  const daysMatch = input.match(/(\d+)\s*days?/i);
+  const hoursMatch = input.match(/(\d+)\s*hours?/i);
+
+  if (daysMatch || hoursMatch) {
+    const days = daysMatch ? Number(daysMatch[1]) : 0;
+    const hours = hoursMatch ? Number(hoursMatch[1]) : 0;
+    return (days * 24) + hours;
+  }
+
+  return null;
+}
+
+function formatHoursToReadable(totalHours) {
+  const safeHours = Math.max(2, Math.round(totalHours || 0));
+  if (safeHours < 24) {
+    return `${safeHours} hours`;
+  }
+
+  const days = Math.floor(safeHours / 24);
+  const hours = safeHours % 24;
+
+  if (hours === 0) {
+    return `${days} day${days > 1 ? 's' : ''}`;
+  }
+
+  return `${days} day${days > 1 ? 's' : ''} ${hours} hours`;
+}
+
+function deriveEstimatedTime(baseTime, modelTime, urgencyLabel) {
+  const baseHours = parseDurationToAverageHours(baseTime) ?? 36;
+  const modelHours = parseDurationToAverageHours(modelTime);
+  const normalizedUrgency = normalizeUrgencyLabel(urgencyLabel);
+
+  let calibratedHours = modelHours !== null
+    ? (baseHours * 0.7) + (modelHours * 0.3)
+    : baseHours;
+
+  if (normalizedUrgency === 'high') {
+    calibratedHours *= 0.8;
+  } else if (normalizedUrgency === 'low') {
+    calibratedHours *= 1.2;
+  }
+
+  return formatHoursToReadable(calibratedHours);
 }
 
 function getStoredLastComplaintId() {
@@ -380,14 +470,14 @@ const GrievEaseApp = () => {
         "medium": 0.6,
         "high": 0.9,
       };
-      const urgencyScore = urgencyMap[String(result.urgency || '').toLowerCase()] || 0.6;
-      
-      let adjustedPriority = departmentInfo.priority;
-      if (urgencyScore > 0.7) {
-        adjustedPriority = getHigherPriority(adjustedPriority, 'High');
-      } else if (urgencyScore < 0.4) {
-        adjustedPriority = 'Low';
-      }
+      const urgencyLabel = normalizeUrgencyLabel(result.urgency);
+      const urgencyScore = urgencyMap[urgencyLabel] || 0.6;
+      const adjustedPriority = derivePriority(departmentInfo.priority, urgencyLabel);
+      const adjustedEstimatedTime = deriveEstimatedTime(
+        departmentInfo.time,
+        result.predicted_resolution_readable,
+        urgencyLabel
+      );
 
       const sentiment = deriveSentiment(result.emotion);
       const readableCategory = formatCategoryLabel(finalCategory);
@@ -397,14 +487,17 @@ const GrievEaseApp = () => {
         confidence: result.text_category_confidence,
         department: departmentInfo.dept,
         priority: adjustedPriority,
-        estimatedTime: result.predicted_resolution_readable || departmentInfo.time,
+        estimatedTime: adjustedEstimatedTime,
         emotion: result.emotion,
         sentiment,
         urgency: urgencyScore,
+        urgencyLabel,
         imageDescription: result.image_category ? `AI detected: ${result.image_category}` : null,
         analysisSource: 'GrievEase ML API',
         rawSentiment: result.emotion,
         sentimentConfidence: result.emotion_confidence,
+        modelEstimatedTime: result.predicted_resolution_readable,
+        baseEstimatedTime: departmentInfo.time,
         textAnalysis: null,
       });
       
@@ -426,8 +519,13 @@ const GrievEaseApp = () => {
       ...prev,
       category: formatCategoryLabel(newCategory),
       department: departmentInfo.dept,
-      priority: departmentInfo.priority,
-      estimatedTime: prev?.estimatedTime || departmentInfo.time,
+      priority: derivePriority(departmentInfo.priority, prev?.urgencyLabel),
+      estimatedTime: deriveEstimatedTime(
+        departmentInfo.time,
+        prev?.modelEstimatedTime,
+        prev?.urgencyLabel
+      ),
+      baseEstimatedTime: departmentInfo.time,
     }));
     
     setSelectedCategory(newCategory);

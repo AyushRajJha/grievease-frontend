@@ -46,6 +46,7 @@ async function sendComplaintAcknowledgement({ complaint, complaintId, trackingUr
   const safeDepartment = escapeHtml(complaint.department);
   const safePriority = escapeHtml(complaint.priority);
   const safeEstimatedTime = escapeHtml(complaint.estimatedTime);
+  const safeLocation = escapeHtml(complaint.location);
 
   const text = [
     `Hello ${complaint.userName || 'Citizen'},`,
@@ -57,6 +58,7 @@ async function sendComplaintAcknowledgement({ complaint, complaintId, trackingUr
     `Department: ${complaint.department || 'N/A'}`,
     `Priority: ${complaint.priority || 'N/A'}`,
     `Estimated resolution time: ${complaint.estimatedTime || 'N/A'}`,
+    `Location: ${complaint.location || 'N/A'}`,
     '',
     `Track your complaint: ${trackingUrl}`,
     '',
@@ -73,7 +75,8 @@ async function sendComplaintAcknowledgement({ complaint, complaintId, trackingUr
         <p style="margin:0 0 8px;"><strong>Category:</strong> ${safeCategory || 'N/A'}</p>
         <p style="margin:0 0 8px;"><strong>Department:</strong> ${safeDepartment || 'N/A'}</p>
         <p style="margin:0 0 8px;"><strong>Priority:</strong> ${safePriority || 'N/A'}</p>
-        <p style="margin:0;"><strong>Estimated resolution time:</strong> ${safeEstimatedTime || 'N/A'}</p>
+        <p style="margin:0 0 8px;"><strong>Estimated resolution time:</strong> ${safeEstimatedTime || 'N/A'}</p>
+        <p style="margin:0;"><strong>Location:</strong> ${safeLocation || 'N/A'}</p>
       </div>
       <p>
         <a href="${safeTrackingUrl}" style="display:inline-block;background:#4f46e5;color:white;text-decoration:none;padding:12px 18px;border-radius:10px;font-weight:700;">
@@ -150,11 +153,12 @@ export async function POST(request) {
 
     const userName = String(body.userName || '').trim();
     const userEmail = String(body.userEmail || '').trim().toLowerCase();
+    const location = String(body.location || '').trim();
 
-    if (!userName || !isValidEmail(userEmail)) {
+    if (!userName || !location || !isValidEmail(userEmail)) {
       return Response.json({
         success: false,
-        error: 'Valid name and email are required'
+        error: 'Valid name, email, and location are required'
       }, { status: 400 });
     }
     
@@ -166,6 +170,7 @@ export async function POST(request) {
       ...body,
       userName,
       userEmail,
+      location,
       createdAt: new Date(),
       status: 'Pending',
       updatedAt: new Date(),

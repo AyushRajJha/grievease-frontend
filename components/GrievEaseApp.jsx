@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
-import { Upload, Camera, AlertCircle, Clock, Building2, TrendingUp, Sparkles, CheckCircle2, FileText, Brain, Image as ImageIcon, MessageSquare, Zap, Edit2, Check, X, Moon, Sun, User, Mail } from 'lucide-react';
+import { Upload, Camera, AlertCircle, Clock, Building2, TrendingUp, Sparkles, CheckCircle2, FileText, Brain, Image as ImageIcon, MessageSquare, Edit2, Check, X, Moon, Sun, User, Mail } from 'lucide-react';
 import { useTheme } from '@/context/ThemeContext';
 
 const compressAndEncodeImage = async (file) => {
@@ -528,8 +528,6 @@ const GrievEaseApp = () => {
               </div>
             </div>
             <div className="flex items-center space-x-2 text-sm">
-              <Zap className="w-4 h-4 text-yellow-500" />
-              <span className="text-gray-600 dark:text-gray-300">Powered by Custom AI Model</span>
               <Link
                 href={trackComplaintHref}
                 className="ml-2 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 px-4 py-1.5 rounded-full text-sm font-medium hover:bg-indigo-200 dark:hover:bg-indigo-800/60 transition-all duration-200 border border-indigo-200 dark:border-indigo-700"

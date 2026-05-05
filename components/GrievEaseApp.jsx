@@ -56,6 +56,7 @@ const compressAndEncodeImage = async (file) => {
 };
 
 const CATEGORY_ROUTE_MAP = {
+  'fire emergency': { dept: 'Fire Department', priority: 'Critical', time: '1-2 hours' },
   'garbage issue': { dept: 'Sanitation Department', priority: 'Medium', time: '24-48 hours' },
   'sanitation': { dept: 'Sanitation Department', priority: 'Medium', time: '24-48 hours' },
   'street cleaning': { dept: 'Sanitation Department', priority: 'Medium', time: '24-48 hours' },
@@ -267,6 +268,197 @@ function deriveEstimatedTime(baseTime, modelTime, urgencyLabel) {
   return formatHoursToReadable(calibratedHours);
 }
 
+const KEYWORD_CATEGORY_OVERRIDES = [
+  {
+    category: 'fire emergency',
+    confidence: 0.98,
+    source: 'GrievEase Hybrid AI Routing',
+    patterns: [
+      /\bfire department\b/i,
+      /\bthere is fire\b/i,
+      /\bcaught fire\b/i,
+      /\bon fire\b/i,
+      /\bfire near\b/i,
+      /\bfire in\b/i,
+      /\bbuilding fire\b/i,
+      /\bhouse fire\b/i,
+      /\bshop fire\b/i,
+      /\bblaze\b/i,
+      /\bflames?\b/i,
+      /\bgas leak\b/i,
+      /\bcylinder leak\b/i,
+    ],
+  },
+  {
+    category: 'exposed electric wires',
+    confidence: 0.96,
+    source: 'GrievEase Hybrid AI Routing',
+    patterns: [
+      /\bexposed (electric )?wires?\b/i,
+      /\blive wires?\b/i,
+      /\bsparking wires?\b/i,
+      /\belectric sparks?\b/i,
+      /\bshort circuit\b/i,
+      /\belectric pole spark\b/i,
+    ],
+  },
+  {
+    category: 'open manhole',
+    confidence: 0.97,
+    source: 'GrievEase Hybrid AI Routing',
+    patterns: [
+      /\bopen manhole\b/i,
+      /\bmanhole (is )?open\b/i,
+      /\bmissing manhole cover\b/i,
+      /\bsewer (is )?open\b/i,
+    ],
+  },
+  {
+    category: 'drainage blockage',
+    confidence: 0.95,
+    source: 'GrievEase Hybrid AI Routing',
+    patterns: [
+      /\bdrain(age)? (is )?(blocked|choked|clogged)\b/i,
+      /\bblocked sewer\b/i,
+      /\bchoked drain\b/i,
+      /\bdrain overflow\b/i,
+    ],
+  },
+  {
+    category: 'waterlogging',
+    confidence: 0.95,
+    source: 'GrievEase Hybrid AI Routing',
+    patterns: [
+      /\bwaterlogging\b/i,
+      /\bflooded road\b/i,
+      /\broad is flooded\b/i,
+      /\bsevere flooding\b/i,
+      /\bwater filled on road\b/i,
+    ],
+  },
+  {
+    category: 'traffic signal not working',
+    confidence: 0.95,
+    source: 'GrievEase Hybrid AI Routing',
+    patterns: [
+      /\btraffic signal (is )?not working\b/i,
+      /\btraffic light (is )?not working\b/i,
+      /\btraffic signal failure\b/i,
+      /\bsignal light not working\b/i,
+    ],
+  },
+  {
+    category: 'stray dog menace',
+    confidence: 0.94,
+    source: 'GrievEase Hybrid AI Routing',
+    patterns: [
+      /\bstray dogs?\b/i,
+      /\bdogs? chasing\b/i,
+      /\bdog bite risk\b/i,
+      /\bdog menace\b/i,
+    ],
+  },
+  {
+    category: 'injured stray animal',
+    confidence: 0.95,
+    source: 'GrievEase Hybrid AI Routing',
+    patterns: [
+      /\binjured (stray )?(dog|animal|cow|cat|puppy)\b/i,
+      /\bhurt (stray )?(dog|animal|cow|cat)\b/i,
+      /\banimal accident\b/i,
+    ],
+  },
+  {
+    category: 'snake in public area',
+    confidence: 0.96,
+    source: 'GrievEase Hybrid AI Routing',
+    patterns: [
+      /\bsnake spotted\b/i,
+      /\bsnake in (public|school|park|road|office|house|colony|street)\b/i,
+      /\bvenomous snake\b/i,
+    ],
+  },
+  {
+    category: 'burning garbage',
+    confidence: 0.95,
+    source: 'GrievEase Hybrid AI Routing',
+    patterns: [
+      /\bburning garbage\b/i,
+      /\bgarbage is burning\b/i,
+      /\bwaste is burning\b/i,
+      /\btrash fire\b/i,
+    ],
+  },
+  {
+    category: 'chemical waste dumping',
+    confidence: 0.97,
+    source: 'GrievEase Hybrid AI Routing',
+    patterns: [
+      /\bchemical waste\b/i,
+      /\btoxic waste\b/i,
+      /\bhazardous waste\b/i,
+      /\bchemical dumping\b/i,
+    ],
+  },
+  {
+    category: 'illegal construction',
+    confidence: 0.94,
+    source: 'GrievEase Hybrid AI Routing',
+    patterns: [
+      /\billegal construction\b/i,
+      /\bunauthorized construction\b/i,
+      /\bconstruction without permission\b/i,
+    ],
+  },
+  {
+    category: 'unsafe abandoned building',
+    confidence: 0.95,
+    source: 'GrievEase Hybrid AI Routing',
+    patterns: [
+      /\babandoned building\b/i,
+      /\bunsafe building\b/i,
+      /\bdangerous building\b/i,
+      /\bbuilding wall is cracked\b/i,
+      /\bcracked building wall\b/i,
+    ],
+  },
+  {
+    category: 'law & order issue',
+    confidence: 0.94,
+    source: 'GrievEase Hybrid AI Routing',
+    patterns: [
+      /\btheft\b/i,
+      /\bstealing\b/i,
+      /\bfight\b/i,
+      /\bassault\b/i,
+      /\bharassment\b/i,
+      /\bviolence\b/i,
+      /\bmolestation\b/i,
+    ],
+  },
+];
+
+function detectCategoryOverride(text, currentCategory) {
+  const normalizedText = String(text || '').trim().toLowerCase();
+
+  if (!normalizedText) {
+    return null;
+  }
+
+  for (const rule of KEYWORD_CATEGORY_OVERRIDES) {
+    const matchesRule = rule.patterns.some((pattern) => pattern.test(normalizedText));
+    if (matchesRule) {
+      return {
+        category: rule.category,
+        confidence: rule.confidence,
+        analysisSource: rule.source,
+      };
+    }
+  }
+
+  return null;
+}
+
 function getStoredLastComplaintId() {
   if (typeof window === 'undefined') return '';
 
@@ -462,6 +654,11 @@ const GrievEaseApp = () => {
         finalCategory = result.image_category;
       }
 
+      const categoryOverride = detectCategoryOverride(complaintText, finalCategory);
+      if (categoryOverride) {
+        finalCategory = categoryOverride.category;
+      }
+
       const normalizedCategory = normalizeCategory(finalCategory);
       const departmentInfo = categorizeComplaint(normalizedCategory);
       
@@ -481,10 +678,14 @@ const GrievEaseApp = () => {
 
       const sentiment = deriveSentiment(result.emotion);
       const readableCategory = formatCategoryLabel(finalCategory);
+      const finalConfidence = categoryOverride
+        ? Math.max(result.text_category_confidence ?? 0, categoryOverride.confidence)
+        : result.text_category_confidence;
+      const finalAnalysisSource = categoryOverride?.analysisSource ?? 'GrievEase ML API';
 
       setResults({
         category: readableCategory,
-        confidence: result.text_category_confidence,
+        confidence: finalConfidence,
         department: departmentInfo.dept,
         priority: adjustedPriority,
         estimatedTime: adjustedEstimatedTime,
@@ -493,7 +694,7 @@ const GrievEaseApp = () => {
         urgency: urgencyScore,
         urgencyLabel,
         imageDescription: result.image_category ? `AI detected: ${result.image_category}` : null,
-        analysisSource: 'GrievEase ML API',
+        analysisSource: finalAnalysisSource,
         rawSentiment: result.emotion,
         sentimentConfidence: result.emotion_confidence,
         modelEstimatedTime: result.predicted_resolution_readable,

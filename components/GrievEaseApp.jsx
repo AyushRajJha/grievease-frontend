@@ -946,6 +946,12 @@ const GrievEaseApp = () => {
               >
                 Track Complaint
               </Link>
+              <Link
+                href="/admin"
+                className="ml-2 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 px-4 py-1.5 rounded-full text-sm font-medium hover:bg-emerald-200 dark:hover:bg-emerald-800/60 transition-all duration-200 border border-emerald-200 dark:border-emerald-700"
+              >
+                Admin
+              </Link>
 <button
   onClick={() => setShowAbout(true)}
   className="ml-2 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-4 py-1.5 rounded-full text-sm font-medium hover:bg-blue-200 dark:hover:bg-blue-800/60 transition-all duration-200 border border-blue-200 dark:border-blue-700"
@@ -1550,6 +1556,7 @@ const GrievEaseApp = () => {
             <div className="flex items-center space-x-6 text-sm text-gray-500 dark:text-gray-400">
               <Link href="/" className="hover:text-blue-600 transition-colors">Home</Link>
               <Link href="/track" className="hover:text-blue-600 transition-colors">Track Complaint</Link>
+              <Link href="/admin" className="hover:text-blue-600 transition-colors">Admin</Link>
               <button onClick={() => setShowAbout(true)} className="hover:text-blue-600 transition-colors">About</button>
             </div>
             <p className="text-sm text-gray-400 dark:text-gray-500">© 2026 GrievEase. All rights reserved.</p>

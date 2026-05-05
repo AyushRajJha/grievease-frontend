@@ -313,12 +313,22 @@ function deriveUrgencyAssessment({ text, category, basePriority, modelLabel, mod
   const hasHighUrgencyLanguage = highUrgencyPatterns.some((pattern) => pattern.test(normalizedText));
   const hasLowUrgencyLanguage = lowUrgencyPatterns.some((pattern) => pattern.test(normalizedText));
 
-  let label;
+  if (hasLowUrgencyLanguage && !hasHighUrgencyLanguage) {
+    return {
+      label: 'low',
+      score: 0.35,
+    };
+  }
+
   if (hasHighUrgencyLanguage) {
-    label = 'high';
-  } else if (hasLowUrgencyLanguage) {
-    label = 'low';
-  } else if (confidence < 0.75) {
+    return {
+      label: 'high',
+      score: Math.max(0.85, confidence),
+    };
+  }
+
+  let label;
+  if (confidence < 0.75) {
     label = baselineLabel;
   } else {
     label = normalizedModelLabel;

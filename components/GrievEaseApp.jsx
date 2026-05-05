@@ -287,17 +287,20 @@ function deriveUrgencyAssessment({ text, category, basePriority, modelLabel, mod
   const baselineLabel = PRIORITY_TO_URGENCY[basePriority] || 'medium';
   const confidence = clampScore(modelConfidence, 0.6);
 
-  const highUrgencyPatterns = [
+  const strongHighUrgencyPatterns = [
     /\bimmediately\b/i,
     /\burgent\b/i,
     /\bemergency\b/i,
-    /\bdanger(?:ous)?\b/i,
-    /\brisk\b/i,
     /\baccident\b/i,
     /\bcan die\b/i,
     /\bmay fall\b/i,
     /\bunsafe\b/i,
     /\bcritical\b/i,
+  ];
+
+  const cautionUrgencyPatterns = [
+    /\bdanger(?:ous)?\b/i,
+    /\brisk\b/i,
   ];
 
   const lowUrgencyPatterns = [
@@ -310,10 +313,12 @@ function deriveUrgencyAssessment({ text, category, basePriority, modelLabel, mod
     /\bduring routine maintenance\b/i,
   ];
 
-  const hasHighUrgencyLanguage = highUrgencyPatterns.some((pattern) => pattern.test(normalizedText));
   const hasLowUrgencyLanguage = lowUrgencyPatterns.some((pattern) => pattern.test(normalizedText));
+  const hasStrongHighUrgencyLanguage = strongHighUrgencyPatterns.some((pattern) => pattern.test(normalizedText));
+  const hasCautionUrgencyLanguage = cautionUrgencyPatterns.some((pattern) => pattern.test(normalizedText));
+  const hasHighUrgencyLanguage = hasStrongHighUrgencyLanguage || (hasCautionUrgencyLanguage && !hasLowUrgencyLanguage);
 
-  if (hasLowUrgencyLanguage && !hasHighUrgencyLanguage) {
+  if (hasLowUrgencyLanguage && !hasStrongHighUrgencyLanguage) {
     return {
       label: 'low',
       score: 0.35,

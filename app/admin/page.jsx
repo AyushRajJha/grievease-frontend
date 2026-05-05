@@ -133,6 +133,8 @@ export default function AdminPage() {
     const priority = normalizeValue(complaint.priority, '').toLowerCase();
     return priority === 'high' || priority === 'critical';
   }).length;
+  const mediumPriorityComplaints = complaints.filter((complaint) => normalizeValue(complaint.priority, '').toLowerCase() === 'medium').length;
+  const lowPriorityComplaints = complaints.filter((complaint) => normalizeValue(complaint.priority, '').toLowerCase() === 'low').length;
   const pendingComplaints = complaints.filter((complaint) => normalizeValue(complaint.status, 'Pending') === 'Pending').length;
 
   const filteredComplaints = complaints.filter((complaint) => {
@@ -234,14 +236,16 @@ export default function AdminPage() {
           </div>
         </section>
 
-        <section className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        <section className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
           <MetricCard icon={LayoutDashboard} label="Total Complaints" value={totalComplaints} accent="bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-300" />
           <MetricCard icon={ClipboardList} label="Pending Queue" value={pendingComplaints} accent="bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-300" />
           <MetricCard icon={AlertTriangle} label="High / Critical" value={highPriorityComplaints} accent="bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-300" />
+          <MetricCard icon={Filter} label="Medium" value={mediumPriorityComplaints} accent="bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-300" />
+          <MetricCard icon={ShieldCheck} label="Low" value={lowPriorityComplaints} accent="bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-300" />
           <MetricCard icon={Building2} label="Active Departments" value={departments.length} accent="bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-300" />
         </section>
 
-        <section className="grid xl:grid-cols-[1.2fr_2fr] gap-6">
+        <section className="grid xl:grid-cols-[1.2fr_2fr] gap-6 items-start">
           <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm p-6">
             <div className="flex items-center gap-2 mb-5">
               <Building2 className="w-5 h-5 text-indigo-600" />
@@ -267,7 +271,7 @@ export default function AdminPage() {
             )}
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm p-6">
+          <div className="self-start bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm p-6">
             <div className="flex items-center gap-2 mb-5">
               <Filter className="w-5 h-5 text-indigo-600" />
               <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">Queue Filters</h3>

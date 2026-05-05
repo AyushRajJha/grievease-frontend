@@ -20,6 +20,8 @@ const URGENCY_CONFIG = {
   low: 'text-green-600 dark:text-green-400',
 };
 
+const STATUS_ORDER = ['Pending', 'Under Review', 'Assigned', 'In Progress', 'Resolved'];
+
 const URGENCY_HIGH_THRESHOLD = 0.7;
 const URGENCY_MEDIUM_THRESHOLD = 0.4;
 
@@ -44,6 +46,18 @@ function getTimelineStages(complaint) {
   const createdAt = new Date(complaint.createdAt);
   const MS_PER_HOUR = 60 * 60 * 1000;
   const hoursPassed = (Date.now() - createdAt.getTime()) / MS_PER_HOUR;
+  const storedStatus = String(complaint.status || '').trim();
+  const storedStatusIndex = STATUS_ORDER.indexOf(storedStatus);
+
+  if (storedStatusIndex !== -1) {
+    return [
+      { id: 1, title: 'Submitted', description: 'Complaint received and recorded.', icon: '📋', completedAt: createdAt.toLocaleString(), done: true },
+      { id: 2, title: 'Under Review', description: 'Team is reviewing your complaint.', icon: '🔍', completedAt: storedStatusIndex >= 1 ? (complaint.updatedAt ? new Date(complaint.updatedAt).toLocaleString() : 'Updated by admin') : null, done: storedStatusIndex >= 1 },
+      { id: 3, title: 'Assigned', description: `Assigned to ${complaint.department}.`, icon: '🏢', completedAt: storedStatusIndex >= 2 ? (complaint.updatedAt ? new Date(complaint.updatedAt).toLocaleString() : 'Updated by admin') : null, done: storedStatusIndex >= 2 },
+      { id: 4, title: 'In Progress', description: 'Department is actively working on it.', icon: '⚙️', completedAt: storedStatusIndex >= 3 ? (complaint.updatedAt ? new Date(complaint.updatedAt).toLocaleString() : 'Updated by admin') : null, done: storedStatusIndex >= 3 },
+      { id: 5, title: 'Resolved', description: 'Complaint successfully resolved.', icon: '✅', completedAt: storedStatusIndex >= 4 ? (complaint.updatedAt ? new Date(complaint.updatedAt).toLocaleString() : 'Updated by admin') : null, done: storedStatusIndex >= 4 },
+    ];
+  }
 
   const estimatedHours = parseEstimatedHours(complaint.estimatedTime);
   const resolvedThreshold = estimatedHours !== null ? estimatedHours : 72;
@@ -94,11 +108,14 @@ export default function ComplaintDetails({ complaint }) {
     ? (complaint.urgency > URGENCY_HIGH_THRESHOLD ? 'high' : complaint.urgency > URGENCY_MEDIUM_THRESHOLD ? 'medium' : 'low')
     : complaint.urgency?.toLowerCase();
   const urgencyClass = URGENCY_CONFIG[urgencyString] || 'text-gray-600 dark:text-gray-400';
-
-  const overallStatusLabel =
+  const storedStatusLabel = STATUS_ORDER.includes(String(complaint.status || '').trim())
+    ? String(complaint.status).trim()
+    : null;
+  const overallStatusLabel = storedStatusLabel || (
     doneCount === stages.length ? 'Resolved' :
     doneCount >= 3 ? 'In Progress' :
-    doneCount >= 2 ? 'Under Review' : 'Submitted';
+    doneCount >= 2 ? 'Under Review' : 'Submitted'
+  );
 
   const overallStatusStyle =
     doneCount === stages.length ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300 border-green-200 dark:border-green-700' :

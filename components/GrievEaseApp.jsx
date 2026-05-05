@@ -1332,10 +1332,24 @@ const GrievEaseApp = () => {
                     </div>
                   </div>
 
-                  {/* Sentiment & Urgency */}
+                  {/* Urgency Assessment */}
                   <div className="bg-gray-50 dark:bg-gray-700/50 p-5 rounded-xl border border-gray-200 dark:border-gray-600">
-                    <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">Sentiment Analysis</h4>
+                    <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">Urgency Assessment</h4>
                     <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-600 dark:text-gray-300">Urgency Level:</span>
+                        <span className={`text-sm font-semibold ${
+                          results.urgency > 0.7
+                            ? 'text-red-600 dark:text-red-400'
+                            : results.urgency > 0.5
+                              ? 'text-yellow-600 dark:text-yellow-400'
+                              : 'text-green-600 dark:text-green-400'
+                        }`}>
+                          {results.urgencyLabel
+                            ? results.urgencyLabel.charAt(0).toUpperCase() + results.urgencyLabel.slice(1)
+                            : 'Medium'}
+                        </span>
+                      </div>
                       
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-gray-600 dark:text-gray-300">Urgency Score:</span>

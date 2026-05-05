@@ -146,6 +146,12 @@ const PRIORITY_RANK = {
 const PRIORITY_ORDER = ['Low', 'Medium', 'High', 'Critical'];
 const MAX_HISTORY = 10;
 const LAST_SUBMITTED_COMPLAINT_ID_KEY = 'lastSubmittedComplaintId';
+const PRIORITY_TO_URGENCY = {
+  Low: 'low',
+  Medium: 'medium',
+  High: 'high',
+  Critical: 'high',
+};
 
 function normalizeCategory(value) {
   return String(value || '').trim().toLowerCase();
@@ -266,6 +272,85 @@ function deriveEstimatedTime(baseTime, modelTime, urgencyLabel) {
   }
 
   return formatHoursToReadable(calibratedHours);
+}
+
+function clampScore(value, fallback = 0.6) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return fallback;
+  return Math.min(1, Math.max(0, numeric));
+}
+
+function deriveUrgencyAssessment({ text, category, basePriority, modelLabel, modelConfidence }) {
+  const normalizedText = String(text || '').trim().toLowerCase();
+  const normalizedCategory = normalizeCategory(category);
+  const normalizedModelLabel = normalizeUrgencyLabel(modelLabel);
+  const baselineLabel = PRIORITY_TO_URGENCY[basePriority] || 'medium';
+  const confidence = clampScore(modelConfidence, 0.6);
+
+  const highUrgencyPatterns = [
+    /\bimmediately\b/i,
+    /\burgent\b/i,
+    /\bemergency\b/i,
+    /\bdanger(?:ous)?\b/i,
+    /\brisk\b/i,
+    /\baccident\b/i,
+    /\bcan die\b/i,
+    /\bmay fall\b/i,
+    /\bunsafe\b/i,
+    /\bcritical\b/i,
+  ];
+
+  const lowUrgencyPatterns = [
+    /\broutine maintenance\b/i,
+    /\bnot dangerous\b/i,
+    /\bslightly damaged\b/i,
+    /\bnot urgent\b/i,
+    /\bwhenever possible\b/i,
+    /\bcan be repaired later\b/i,
+    /\bduring routine maintenance\b/i,
+  ];
+
+  const hasHighUrgencyLanguage = highUrgencyPatterns.some((pattern) => pattern.test(normalizedText));
+  const hasLowUrgencyLanguage = lowUrgencyPatterns.some((pattern) => pattern.test(normalizedText));
+
+  let label;
+  if (hasHighUrgencyLanguage) {
+    label = 'high';
+  } else if (hasLowUrgencyLanguage) {
+    label = 'low';
+  } else if (confidence < 0.75) {
+    label = baselineLabel;
+  } else {
+    label = normalizedModelLabel;
+  }
+
+  if (baselineLabel === 'low' && label === 'high' && confidence < 0.9) {
+    label = hasHighUrgencyLanguage ? 'high' : 'low';
+  }
+
+  if (baselineLabel === 'medium' && label === 'high' && confidence < 0.85 && !hasHighUrgencyLanguage) {
+    label = 'medium';
+  }
+
+  if (normalizedCategory === 'fire emergency') {
+    label = 'high';
+  }
+
+  const labelBaseScore = {
+    low: 0.3,
+    medium: 0.6,
+    high: 0.85,
+  };
+
+  const baseScore = labelBaseScore[label] ?? 0.6;
+  const score = normalizedModelLabel === label
+    ? (baseScore * 0.45) + (confidence * 0.55)
+    : (baseScore * 0.8) + (confidence * 0.2);
+
+  return {
+    label,
+    score: clampScore(score, baseScore),
+  };
 }
 
 const KEYWORD_CATEGORY_OVERRIDES = [
@@ -662,13 +747,13 @@ const GrievEaseApp = () => {
       const normalizedCategory = normalizeCategory(finalCategory);
       const departmentInfo = categorizeComplaint(normalizedCategory);
       
-      const urgencyMap = {
-        "low": 0.3,
-        "medium": 0.6,
-        "high": 0.9,
-      };
-      const urgencyLabel = normalizeUrgencyLabel(result.urgency);
-      const urgencyScore = urgencyMap[urgencyLabel] || 0.6;
+      const { label: urgencyLabel, score: urgencyScore } = deriveUrgencyAssessment({
+        text: complaintText,
+        category: normalizedCategory,
+        basePriority: departmentInfo.priority,
+        modelLabel: result.urgency,
+        modelConfidence: result.urgency_confidence,
+      });
       const adjustedPriority = derivePriority(departmentInfo.priority, urgencyLabel);
       const adjustedEstimatedTime = deriveEstimatedTime(
         departmentInfo.time,

@@ -21,6 +21,8 @@ import {
 } from 'lucide-react';
 import { useTheme } from '@/context/ThemeContext';
 
+const STATUS_OPTIONS = ['Pending', 'Under Review', 'Assigned', 'In Progress', 'Resolved'];
+
 function normalizeValue(value, fallback = 'N/A') {
   const text = String(value || '').trim();
   return text || fallback;
@@ -57,13 +59,16 @@ export default function AdminPage() {
   const [complaints, setComplaints] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [actionMessage, setActionMessage] = useState('');
   const [searchText, setSearchText] = useState('');
   const [selectedDepartment, setSelectedDepartment] = useState('all');
   const [selectedPriority, setSelectedPriority] = useState('all');
+  const [updatingId, setUpdatingId] = useState('');
 
   const fetchComplaints = async () => {
     setLoading(true);
     setError('');
+    setActionMessage('');
 
     try {
       const response = await fetch('/api/complaints', { cache: 'no-store' });
@@ -84,6 +89,37 @@ export default function AdminPage() {
   useEffect(() => {
     fetchComplaints();
   }, []);
+
+  const updateComplaintStatus = async (complaintId, status) => {
+    setUpdatingId(complaintId);
+    setActionMessage('');
+    setError('');
+
+    try {
+      const response = await fetch(`/api/complaints/${complaintId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status }),
+      });
+
+      const data = await response.json();
+
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to update complaint status');
+      }
+
+      setComplaints((prev) => prev.map((complaint) => (
+        String(complaint._id) === complaintId ? data.complaint : complaint
+      )));
+      setActionMessage(`Complaint ${formatId(complaintId)} updated to ${status}.`);
+    } catch (err) {
+      setError(err.message || 'Unable to update complaint status');
+    } finally {
+      setUpdatingId('');
+    }
+  };
 
   const departmentCounts = complaints.reduce((acc, complaint) => {
     const department = normalizeValue(complaint.department, 'Unassigned');
@@ -279,10 +315,16 @@ export default function AdminPage() {
           <div className="flex items-center justify-between mb-5">
             <div>
               <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">Latest Complaint Queue</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Read-only admin view of the 100 most recent complaints</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Admin queue with real complaint status control</p>
             </div>
             <span className="text-sm font-semibold text-indigo-600 dark:text-indigo-400">{filteredComplaints.length} shown</span>
           </div>
+
+          {actionMessage && (
+            <div className="mb-4 rounded-2xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20 p-4 text-sm text-emerald-700 dark:text-emerald-300">
+              {actionMessage}
+            </div>
+          )}
 
           {loading ? (
             <div className="space-y-3">
@@ -354,6 +396,22 @@ export default function AdminPage() {
                         <div className="rounded-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-4">
                           <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Status</p>
                           <p className="font-bold text-gray-900 dark:text-gray-100">{status}</p>
+                        </div>
+                        <div className="rounded-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-4">
+                          <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">Update Status</p>
+                          <select
+                            value={STATUS_OPTIONS.includes(status) ? status : 'Pending'}
+                            onChange={(e) => updateComplaintStatus(complaintId, e.target.value)}
+                            disabled={updatingId === complaintId}
+                            className="w-full px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-400 disabled:opacity-60"
+                          >
+                            {STATUS_OPTIONS.map((option) => (
+                              <option key={option} value={option}>{option}</option>
+                            ))}
+                          </select>
+                          <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                            {updatingId === complaintId ? 'Saving status...' : 'Changes are saved directly to MongoDB.'}
+                          </p>
                         </div>
                         <Link
                           href={`/track?id=${encodeURIComponent(complaintId)}`}

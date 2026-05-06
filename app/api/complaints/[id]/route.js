@@ -18,7 +18,7 @@ async function connectToDatabase() {
 // GET - Fetch complaint by ID
 export async function GET(request, { params }) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     if (!ObjectId.isValid(id)) {
       return Response.json({
@@ -57,7 +57,7 @@ export async function GET(request, { params }) {
 // PATCH - Update complaint status
 export async function PATCH(request, { params }) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     if (!ObjectId.isValid(id)) {
       return Response.json({

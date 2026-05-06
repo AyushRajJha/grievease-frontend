@@ -173,6 +173,7 @@ export async function POST(request) {
       location,
       createdAt: new Date(),
       status: 'Pending',
+      statusUpdatedAt: null,
       updatedAt: new Date(),
     };
 

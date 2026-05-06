@@ -48,14 +48,17 @@ function getTimelineStages(complaint) {
   const hoursPassed = (Date.now() - createdAt.getTime()) / MS_PER_HOUR;
   const storedStatus = String(complaint.status || '').trim();
   const storedStatusIndex = STATUS_ORDER.indexOf(storedStatus);
+  const hasManualStatusUpdate = Boolean(complaint.statusUpdatedAt);
+  const shouldUseStoredStatus = storedStatusIndex !== -1 && (storedStatus !== 'Pending' || hasManualStatusUpdate);
 
-  if (storedStatusIndex !== -1) {
+  if (shouldUseStoredStatus) {
+    const statusTimestamp = complaint.statusUpdatedAt || complaint.updatedAt;
     return [
       { id: 1, title: 'Submitted', description: 'Complaint received and recorded.', icon: '📋', completedAt: createdAt.toLocaleString(), done: true },
-      { id: 2, title: 'Under Review', description: 'Team is reviewing your complaint.', icon: '🔍', completedAt: storedStatusIndex >= 1 ? (complaint.updatedAt ? new Date(complaint.updatedAt).toLocaleString() : 'Updated by admin') : null, done: storedStatusIndex >= 1 },
-      { id: 3, title: 'Assigned', description: `Assigned to ${complaint.department}.`, icon: '🏢', completedAt: storedStatusIndex >= 2 ? (complaint.updatedAt ? new Date(complaint.updatedAt).toLocaleString() : 'Updated by admin') : null, done: storedStatusIndex >= 2 },
-      { id: 4, title: 'In Progress', description: 'Department is actively working on it.', icon: '⚙️', completedAt: storedStatusIndex >= 3 ? (complaint.updatedAt ? new Date(complaint.updatedAt).toLocaleString() : 'Updated by admin') : null, done: storedStatusIndex >= 3 },
-      { id: 5, title: 'Resolved', description: 'Complaint successfully resolved.', icon: '✅', completedAt: storedStatusIndex >= 4 ? (complaint.updatedAt ? new Date(complaint.updatedAt).toLocaleString() : 'Updated by admin') : null, done: storedStatusIndex >= 4 },
+      { id: 2, title: 'Under Review', description: 'Team is reviewing your complaint.', icon: '🔍', completedAt: storedStatusIndex >= 1 ? (statusTimestamp ? new Date(statusTimestamp).toLocaleString() : 'Updated by admin') : null, done: storedStatusIndex >= 1 },
+      { id: 3, title: 'Assigned', description: `Assigned to ${complaint.department}.`, icon: '🏢', completedAt: storedStatusIndex >= 2 ? (statusTimestamp ? new Date(statusTimestamp).toLocaleString() : 'Updated by admin') : null, done: storedStatusIndex >= 2 },
+      { id: 4, title: 'In Progress', description: 'Department is actively working on it.', icon: '⚙️', completedAt: storedStatusIndex >= 3 ? (statusTimestamp ? new Date(statusTimestamp).toLocaleString() : 'Updated by admin') : null, done: storedStatusIndex >= 3 },
+      { id: 5, title: 'Resolved', description: 'Complaint successfully resolved.', icon: '✅', completedAt: storedStatusIndex >= 4 ? (statusTimestamp ? new Date(statusTimestamp).toLocaleString() : 'Updated by admin') : null, done: storedStatusIndex >= 4 },
     ];
   }
 
@@ -111,7 +114,9 @@ export default function ComplaintDetails({ complaint }) {
   const storedStatusLabel = STATUS_ORDER.includes(String(complaint.status || '').trim())
     ? String(complaint.status).trim()
     : null;
-  const overallStatusLabel = storedStatusLabel || (
+  const hasManualStatusUpdate = Boolean(complaint.statusUpdatedAt);
+  const shouldUseStoredStatusLabel = storedStatusLabel && (storedStatusLabel !== 'Pending' || hasManualStatusUpdate);
+  const overallStatusLabel = shouldUseStoredStatusLabel ? storedStatusLabel : (
     doneCount === stages.length ? 'Resolved' :
     doneCount >= 3 ? 'In Progress' :
     doneCount >= 2 ? 'Under Review' : 'Submitted'

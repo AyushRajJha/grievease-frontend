@@ -245,14 +245,12 @@ export default function ComplaintDetails({ complaint }) {
               </div>
             </div>
           )}
-          {typeof complaint.confidence === 'number' && (
-            <InfoCard
-              icon={Brain}
-              label="AI Confidence"
-              value={`${(complaint.confidence * 100).toFixed(1)}%`}
-              valueClass="text-indigo-600 dark:text-indigo-400"
-            />
-          )}
+          <InfoCard
+            icon={CheckCircle2}
+            label="Analysis Status"
+            value="Completed"
+            valueClass="text-green-600 dark:text-green-400"
+          />
           {complaint.sentiment && (
             <div className="flex items-start space-x-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800/60 border border-gray-100 dark:border-gray-700/50">
               <div className="p-1.5 rounded-lg bg-white dark:bg-gray-700 shadow-sm">

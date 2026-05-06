@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
-import { Upload, Camera, AlertCircle, Clock, Building2, TrendingUp, Sparkles, CheckCircle2, FileText, Brain, Image as ImageIcon, MessageSquare, Edit2, Check, X, Moon, Sun, User, Mail, MapPin, Zap } from 'lucide-react';
+import { Upload, Camera, AlertCircle, Clock, Building2, Sparkles, CheckCircle2, FileText, Brain, Image as ImageIcon, MessageSquare, Edit2, Check, X, Moon, Sun, User, Mail, MapPin, Zap } from 'lucide-react';
 import { useTheme } from '@/context/ThemeContext';
 
 const compressAndEncodeImage = async (file) => {
@@ -1373,15 +1373,15 @@ const GrievEaseApp = () => {
                     )}
                   </div>
 
-                  {/* Confidence & Emotion */}
+                  {/* Analysis Status & Emotion */}
                   <div className="grid grid-cols-2 gap-4">
                     <div className="bg-green-50 dark:bg-green-900/30 p-4 rounded-xl border border-green-100 dark:border-green-800">
                       <div className="flex items-center mb-2">
-                        <TrendingUp className="w-4 h-4 text-green-600 mr-2" />
-                        <span className="text-xs font-medium text-gray-600 dark:text-gray-300">Confidence</span>
+                        <CheckCircle2 className="w-4 h-4 text-green-600 mr-2" />
+                        <span className="text-xs font-medium text-gray-600 dark:text-gray-300">Analysis Status</span>
                       </div>
                       <p className="text-xl font-bold text-green-700 dark:text-green-400">
-                        {(results.confidence * 100).toFixed(1)}%
+                        Completed
                       </p>
                     </div>
                     

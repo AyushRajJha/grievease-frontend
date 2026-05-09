@@ -13,6 +13,7 @@ import {
   Mail,
   MapPin,
   Moon,
+  Phone,
   RefreshCcw,
   Search,
   ShieldCheck,
@@ -162,6 +163,7 @@ export default function OperationsDashboard({ initialSession, portalType = 'admi
       complaint._id,
       complaint.userName,
       complaint.userEmail,
+      complaint.userPhone,
       complaint.category,
       complaint.department,
       complaint.location,
@@ -419,7 +421,7 @@ export default function OperationsDashboard({ initialSession, portalType = 'admi
 
                         <p className="text-gray-800 dark:text-gray-200 leading-relaxed">{normalizeValue(complaint.description)}</p>
 
-                        <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-3 text-sm">
+                        <div className="grid sm:grid-cols-2 xl:grid-cols-5 gap-3 text-sm">
                           <div className="flex items-start gap-2 text-gray-600 dark:text-gray-300">
                             <User className="w-4 h-4 mt-0.5 text-indigo-500" />
                             <span>{normalizeValue(complaint.userName)}</span>
@@ -427,6 +429,10 @@ export default function OperationsDashboard({ initialSession, portalType = 'admi
                           <div className="flex items-start gap-2 text-gray-600 dark:text-gray-300">
                             <Mail className="w-4 h-4 mt-0.5 text-indigo-500" />
                             <span>{normalizeValue(complaint.userEmail)}</span>
+                          </div>
+                          <div className="flex items-start gap-2 text-gray-600 dark:text-gray-300">
+                            <Phone className="w-4 h-4 mt-0.5 text-indigo-500" />
+                            <span>{normalizeValue(complaint.userPhone)}</span>
                           </div>
                           <div className="flex items-start gap-2 text-gray-600 dark:text-gray-300">
                             <MapPin className="w-4 h-4 mt-0.5 text-indigo-500" />

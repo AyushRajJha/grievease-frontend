@@ -1,8 +1,9 @@
 "use client";
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import Link from 'next/link';
-import { Upload, Camera, AlertCircle, Clock, Building2, Sparkles, CheckCircle2, FileText, Brain, Image as ImageIcon, MessageSquare, Edit2, Check, X, Moon, Sun, User, Mail, MapPin, Zap } from 'lucide-react';
+import { Upload, Camera, AlertCircle, Clock, Building2, Sparkles, CheckCircle2, FileText, Brain, Image as ImageIcon, MessageSquare, Edit2, Check, X, Moon, Sun, User, Mail, MapPin, Zap, Phone, ShieldCheck } from 'lucide-react';
 import { useTheme } from '@/context/ThemeContext';
+import { getPreferredVerificationChannel, isValidEmail, isValidPhone, maskContact, normalizeEmail, normalizePhone } from '@/lib/contact';
 
 const compressAndEncodeImage = async (file) => {
   return new Promise((resolve, reject) => {
@@ -172,11 +173,6 @@ function formatCategoryLabel(value) {
 
 function deriveSentiment(emotion) {
   return EMOTION_SENTIMENT_MAP[String(emotion || '').trim().toLowerCase()] || 'Neutral - Reporting Issue';
-}
-
-function isValidEmail(value) {
-  const email = String(value || '').trim();
-  return /^[^\s@]+@[^\s@]+\.[A-Za-z]{2,}$/.test(email);
 }
 
 function normalizeUrgencyLabel(value, fallbackScore = null) {
@@ -626,6 +622,7 @@ const GrievEaseApp = () => {
   const { toggleTheme } = useTheme();
   const [userName, setUserName] = useState('');
   const [userEmail, setUserEmail] = useState('');
+  const [userPhone, setUserPhone] = useState('');
   const [userLocation, setUserLocation] = useState('');
   const [imageFile, setImageFile] = useState(null);
   const [preview, setPreview] = useState(null);
@@ -643,6 +640,16 @@ const GrievEaseApp = () => {
   const [showThankYou, setShowThankYou] = useState(false);
   const [submittedComplaintId, setSubmittedComplaintId] = useState('');
   const [copied, setCopied] = useState(false);
+  const [verificationChannel, setVerificationChannel] = useState('phone');
+  const [otpCode, setOtpCode] = useState('');
+  const [otpRequestId, setOtpRequestId] = useState('');
+  const [otpRequested, setOtpRequested] = useState(false);
+  const [otpVerified, setOtpVerified] = useState(false);
+  const [verificationToken, setVerificationToken] = useState('');
+  const [verificationMessage, setVerificationMessage] = useState('');
+  const [maskedVerifiedContact, setMaskedVerifiedContact] = useState('');
+  const [otpSending, setOtpSending] = useState(false);
+  const [otpVerifying, setOtpVerifying] = useState(false);
   const fileInputRef = useRef(null);
   const trackComplaintHref = submittedComplaintId
     ? `/track?id=${encodeURIComponent(submittedComplaintId)}`
@@ -652,7 +659,29 @@ const GrievEaseApp = () => {
     setSubmittedComplaintId(getStoredLastComplaintId());
   }, []);
 
-  const hasValidUserDetails = userName.trim() && userLocation.trim() && isValidEmail(userEmail);
+  const hasReachableContact = isValidPhone(userPhone) || isValidEmail(userEmail);
+  const availableVerificationChannels = useMemo(() => [
+    ...(isValidPhone(userPhone) ? ['phone'] : []),
+    ...(isValidEmail(userEmail) ? ['email'] : []),
+  ], [userEmail, userPhone]);
+  const hasValidUserDetails = userName.trim() && userLocation.trim() && hasReachableContact;
+
+  const clearVerificationState = () => {
+    setOtpCode('');
+    setOtpRequestId('');
+    setOtpRequested(false);
+    setOtpVerified(false);
+    setVerificationToken('');
+    setVerificationMessage('');
+    setMaskedVerifiedContact('');
+  };
+
+  useEffect(() => {
+    if (!availableVerificationChannels.includes(verificationChannel)) {
+      const preferredChannel = getPreferredVerificationChannel({ email: userEmail, phone: userPhone });
+      setVerificationChannel(preferredChannel || 'phone');
+    }
+  }, [availableVerificationChannels, verificationChannel, userEmail, userPhone]);
 
   const handleDrag = (e) => {
     e.preventDefault();
@@ -694,14 +723,103 @@ const GrievEaseApp = () => {
     }
   };
 
+  const requestOtp = async () => {
+    const selectedContact = verificationChannel === 'phone'
+      ? normalizePhone(userPhone)
+      : normalizeEmail(userEmail);
+
+    if (!selectedContact) {
+      setError(`Please enter a valid ${verificationChannel} before requesting OTP.`);
+      return;
+    }
+
+    setOtpSending(true);
+    setError(null);
+    setVerificationMessage('');
+
+    try {
+      const response = await fetch('/api/verification/request', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          channel: verificationChannel,
+          email: userEmail,
+          phone: userPhone,
+        }),
+      });
+
+      const data = await response.json();
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to send OTP');
+      }
+
+      setOtpRequested(true);
+      setOtpVerified(false);
+      setOtpCode('');
+      setOtpRequestId(data.requestId || '');
+      setVerificationToken('');
+      setMaskedVerifiedContact(data.maskedContact || maskContact(verificationChannel, selectedContact));
+
+      const baseMessage = `OTP sent to ${data.maskedContact || maskContact(verificationChannel, selectedContact)}.`;
+      const debugSuffix = data.debugOtp ? ` Debug OTP: ${data.debugOtp}` : '';
+      setVerificationMessage(`${baseMessage}${debugSuffix}`);
+    } catch (err) {
+      setError(err.message || 'Failed to send OTP.');
+    } finally {
+      setOtpSending(false);
+    }
+  };
+
+  const verifyOtp = async () => {
+    if (!otpRequestId || !/^\d{6}$/.test(otpCode)) {
+      setError('Please enter the 6-digit OTP code.');
+      return;
+    }
+
+    setOtpVerifying(true);
+    setError(null);
+
+    try {
+      const response = await fetch('/api/verification/verify', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          requestId: otpRequestId,
+          otp: otpCode,
+          channel: verificationChannel,
+          email: userEmail,
+          phone: userPhone,
+        }),
+      });
+
+      const data = await response.json();
+      if (!data.success) {
+        throw new Error(data.error || 'OTP verification failed');
+      }
+
+      setOtpVerified(true);
+      setVerificationToken(data.verificationToken || '');
+      setMaskedVerifiedContact(data.maskedContact || maskedVerifiedContact);
+      setVerificationMessage(`${data.channel === 'phone' ? 'Phone' : 'Email'} verified successfully.`);
+    } catch (err) {
+      setError(err.message || 'Failed to verify OTP.');
+    } finally {
+      setOtpVerifying(false);
+    }
+  };
+
   const processComplaint = async () => {
     if (!userName.trim()) {
       setError('Please enter your full name before running the AI analysis.');
       return;
     }
 
-    if (!isValidEmail(userEmail)) {
-      setError('Please enter a valid email address before running the AI analysis.');
+    if (!hasReachableContact) {
+      setError('Please enter a valid phone number or email address before running the AI analysis.');
       return;
     }
 
@@ -841,13 +959,18 @@ const GrievEaseApp = () => {
     return;
   }
 
-  if (!isValidEmail(userEmail)) {
-    setError('Please enter a valid email address before submitting the complaint.');
+  if (!hasReachableContact) {
+    setError('Please provide a valid phone number or email address before submitting the complaint.');
     return;
   }
 
   if (!userLocation.trim()) {
     setError('Please enter the complaint location before submitting the complaint.');
+    return;
+  }
+
+  if (!otpVerified || !verificationToken) {
+    setError('Please verify your phone number or email with OTP before submitting the complaint.');
     return;
   }
   
@@ -863,7 +986,8 @@ const GrievEaseApp = () => {
 
     const complaintData = {
       userName: userName.trim(),
-      userEmail: userEmail.trim().toLowerCase(),
+      userEmail: isValidEmail(userEmail) ? userEmail.trim().toLowerCase() : '',
+      userPhone: isValidPhone(userPhone) ? normalizePhone(userPhone) : '',
       location: userLocation.trim(),
       category: results.category,
       description: complaintText,
@@ -876,6 +1000,7 @@ const GrievEaseApp = () => {
       urgency: results.urgency,
       confidence: results.confidence,
       analysisSource: results.analysisSource,
+      verificationToken,
     };
 
     const response = await fetch('/api/complaints', {
@@ -907,6 +1032,7 @@ const GrievEaseApp = () => {
   const resetForm = () => {
     setUserName('');
     setUserEmail('');
+    setUserPhone('');
     setUserLocation('');
     setImageFile(null);
     setPreview(null);
@@ -917,6 +1043,7 @@ const GrievEaseApp = () => {
     setSubmitSuccess(false);
     setIsEditingCategory(false);
     setSelectedCategory('');
+    clearVerificationState();
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -1109,8 +1236,30 @@ const GrievEaseApp = () => {
                 </div>
 
                 <div>
+                  <label htmlFor="userPhone" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Phone Number
+                  </label>
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <input
+                      id="userPhone"
+                      type="tel"
+                      value={userPhone}
+                      onChange={(e) => {
+                        setUserPhone(e.target.value);
+                        clearVerificationState();
+                      }}
+                      placeholder="e.g. 9876543210"
+                      className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 dark:border-gray-600 rounded-xl focus:border-blue-500 focus:outline-none text-gray-700 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-4">
+                <div>
                   <label htmlFor="userEmail" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Email Address
+                    Email Address (Optional)
                   </label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -1118,7 +1267,10 @@ const GrievEaseApp = () => {
                       id="userEmail"
                       type="email"
                       value={userEmail}
-                      onChange={(e) => setUserEmail(e.target.value)}
+                      onChange={(e) => {
+                        setUserEmail(e.target.value);
+                        clearVerificationState();
+                      }}
                       placeholder="you@example.com"
                       className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 dark:border-gray-600 rounded-xl focus:border-blue-500 focus:outline-none text-gray-700 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700"
                     />
@@ -1146,6 +1298,95 @@ const GrievEaseApp = () => {
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-4">
                 Add a clear area, landmark, or address so the complaint can be assigned to the correct location after submission.
               </p>
+
+              <div className="mt-6 rounded-2xl border border-indigo-100 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-900/20 p-5">
+                <div className="flex items-center justify-between gap-3 mb-4">
+                  <div>
+                    <h3 className="text-sm font-semibold text-indigo-900 dark:text-indigo-100 flex items-center">
+                      <ShieldCheck className="w-4 h-4 mr-2 text-indigo-600" />
+                      Contact Verification Required
+                    </h3>
+                    <p className="text-xs text-indigo-700 dark:text-indigo-300 mt-1">
+                      To reduce fake and repeated complaints, you must verify a phone number or email with OTP before the complaint can be submitted.
+                    </p>
+                  </div>
+                  {otpVerified && (
+                    <span className="inline-flex items-center rounded-full bg-green-100 dark:bg-green-900/40 px-3 py-1 text-xs font-bold text-green-700 dark:text-green-300">
+                      Verified
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {availableVerificationChannels.map((channel) => (
+                    <button
+                      key={channel}
+                      type="button"
+                      onClick={() => {
+                        setVerificationChannel(channel);
+                        clearVerificationState();
+                      }}
+                      className={`rounded-full px-4 py-2 text-xs font-semibold transition-all ${
+                        verificationChannel === channel
+                          ? 'bg-indigo-600 text-white shadow-md'
+                          : 'bg-white dark:bg-gray-800 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-700'
+                      }`}
+                    >
+                      Verify via {channel === 'phone' ? 'Phone' : 'Email'}
+                    </button>
+                  ))}
+                  {availableVerificationChannels.length === 0 && (
+                    <span className="text-xs text-red-600 dark:text-red-400">
+                      Add a valid phone number or email to request OTP.
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <button
+                    type="button"
+                    onClick={requestOtp}
+                    disabled={otpSending || availableVerificationChannels.length === 0}
+                    className={`sm:w-auto w-full rounded-xl px-4 py-3 text-sm font-semibold transition-all ${
+                      otpSending || availableVerificationChannels.length === 0
+                        ? 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+                        : 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700 shadow-md'
+                    }`}
+                  >
+                    {otpSending ? 'Sending OTP...' : `Send OTP to ${verificationChannel === 'phone' ? 'Phone' : 'Email'}`}
+                  </button>
+
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={6}
+                    value={otpCode}
+                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    placeholder="Enter 6-digit OTP"
+                    className="flex-1 px-4 py-3 border-2 border-gray-200 dark:border-gray-600 rounded-xl focus:border-indigo-500 focus:outline-none text-gray-700 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={verifyOtp}
+                    disabled={otpVerifying || !otpRequested || otpCode.length !== 6}
+                    className={`sm:w-auto w-full rounded-xl px-4 py-3 text-sm font-semibold transition-all ${
+                      otpVerifying || !otpRequested || otpCode.length !== 6
+                        ? 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+                        : 'bg-green-600 text-white hover:bg-green-700 shadow-md'
+                    }`}
+                  >
+                    {otpVerifying ? 'Verifying...' : 'Verify OTP'}
+                  </button>
+                </div>
+
+                {verificationMessage && (
+                  <p className={`mt-3 text-xs ${otpVerified ? 'text-green-700 dark:text-green-300' : 'text-indigo-700 dark:text-indigo-300'}`}>
+                    {verificationMessage}
+                    {maskedVerifiedContact && otpVerified ? ` (${maskedVerifiedContact})` : ''}
+                  </p>
+                )}
+              </div>
             </div>
 
             {/* Image Upload */}
@@ -1255,7 +1496,7 @@ const GrievEaseApp = () => {
               ) : (
                 <>
                   <Brain className="w-5 h-5" />
-                  <span>File Your Complaint</span>
+                  <span>Analyze Complaint</span>
                 </>
               )}
             </button>
@@ -1494,11 +1735,16 @@ const GrievEaseApp = () => {
 
                   {/* Action Buttons */}
                   <div className="space-y-3">
+                    {!otpVerified && (
+                      <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
+                        Verify your phone number or email with OTP to unlock complaint submission.
+                      </div>
+                    )}
                     <button
                       onClick={submitComplaint}
-                      disabled={isSubmitting || submitSuccess}
+                      disabled={isSubmitting || submitSuccess || !otpVerified || !verificationToken}
                       className={`w-full py-4 rounded-xl font-semibold text-white transition-all duration-200 shadow-lg flex items-center justify-center space-x-2 ${
-                        isSubmitting || submitSuccess
+                        isSubmitting || submitSuccess || !otpVerified || !verificationToken
                           ? 'bg-gray-400 cursor-not-allowed'
                           : 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 hover:shadow-xl'
                       }`}
@@ -1516,7 +1762,7 @@ const GrievEaseApp = () => {
                       ) : (
                         <>
                           <Check className="w-5 h-5" />
-                          <span>Submit Complaint to Database</span>
+                          <span>Submit Verified Complaint</span>
                         </>
                       )}
                     </button>

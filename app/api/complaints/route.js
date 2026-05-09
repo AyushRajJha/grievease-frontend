@@ -1,15 +1,9 @@
-import nodemailer from 'nodemailer';
-import { MongoClient } from 'mongodb';
+import { ObjectId } from 'mongodb';
 import { getSessionFromRequest, isAdmin, isDepartmentUser } from '@/lib/auth';
-
-const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017';
-const dbName = 'grievease';
-let cachedClient = null;
-
-function isValidEmail(value) {
-  const email = String(value || '').trim();
-  return /^[^\s@]+@[^\s@]+\.[A-Za-z]{2,}$/.test(email);
-}
+import { getDb } from '@/lib/mongodb';
+import { getNormalizedContact, isValidEmail, isValidPhone, normalizeEmail, normalizePhone } from '@/lib/contact';
+import { hashValue, normalizeTextFingerprint, verifyVerificationToken } from '@/lib/contactVerification';
+import { sendEmailMessage } from '@/lib/notifications';
 
 function escapeHtml(value) {
   return String(value || '')
@@ -34,10 +28,6 @@ function buildBaseUrl(request) {
 }
 
 async function sendComplaintAcknowledgement({ complaint, complaintId, trackingUrl }) {
-  const gmailUser = process.env.GMAIL_USER;
-  const gmailAppPassword = process.env.GMAIL_APP_PASSWORD;
-  const resendApiKey = process.env.RESEND_API_KEY;
-
   if (!complaint.userEmail) return { skipped: true };
 
   const safeName = escapeHtml(complaint.userName || 'Citizen');
@@ -89,62 +79,95 @@ async function sendComplaintAcknowledgement({ complaint, complaintId, trackingUr
     </div>
   `;
 
-  if (gmailUser && gmailAppPassword) {
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: gmailUser,
-        pass: gmailAppPassword,
-      },
-    });
-
-    return transporter.sendMail({
-      from: `GrievEase <${gmailUser}>`,
-      to: complaint.userEmail,
-      subject: `GrievEase complaint submitted: ${complaintId}`,
-      text,
-      html,
-    });
-  }
-
-  if (resendApiKey) {
-    const from = process.env.RESEND_FROM_EMAIL || 'GrievEase <onboarding@resend.dev>';
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${resendApiKey}`,
-        'Content-Type': 'application/json',
-        'User-Agent': 'grievease/1.0',
-      },
-      body: JSON.stringify({
-        from,
-        to: [complaint.userEmail],
-        subject: `GrievEase complaint submitted: ${complaintId}`,
-        text,
-        html,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Resend failed with ${response.status}: ${errorText}`);
-    }
-
-    return response.json();
-  }
-
-  return { skipped: true };
+  return sendEmailMessage({
+    to: complaint.userEmail,
+    subject: `GrievEase complaint submitted: ${complaintId}`,
+    text,
+    html,
+  });
 }
 
-async function connectToDatabase() {
-  if (cachedClient) {
-    return cachedClient;
+async function validateVerification({ db, verificationToken, userEmail, userPhone }) {
+  const payload = verifyVerificationToken(verificationToken);
+  if (!payload?.verificationId || !payload.channel || !payload.contact) {
+    return { error: 'A valid OTP verification is required before submitting the complaint.', status: 401 };
   }
 
-  const client = new MongoClient(uri);
-  await client.connect();
-  cachedClient = client;
-  return client;
+  const expectedContact = getNormalizedContact({
+    channel: payload.channel,
+    email: userEmail,
+    phone: userPhone,
+  });
+
+  if (!expectedContact || expectedContact !== payload.contact) {
+    return { error: 'Verified contact does not match the complaint details.', status: 401 };
+  }
+
+  if (!ObjectId.isValid(payload.verificationId)) {
+    return { error: 'Verification session is invalid. Please verify again.', status: 401 };
+  }
+
+  const verificationRecord = await db.collection('otp_requests').findOne({
+    _id: new ObjectId(payload.verificationId),
+    channel: payload.channel,
+    contact: payload.contact,
+    verified: true,
+    consumedAt: null,
+  });
+
+  if (!verificationRecord) {
+    return { error: 'OTP verification has already been used or is no longer valid.', status: 401 };
+  }
+
+  if (new Date(verificationRecord.expiresAt) < new Date()) {
+    return { error: 'OTP verification expired. Please request a new OTP.', status: 401 };
+  }
+
+  return {
+    verificationRecord,
+    verifiedChannel: payload.channel,
+    verifiedContact: payload.contact,
+  };
+}
+
+async function enforceComplaintSecurity({ db, verifiedContact, location, description }) {
+  const complaints = db.collection('complaints');
+  const now = Date.now();
+  const contactHash = hashValue(verifiedContact);
+  const descriptionFingerprint = normalizeTextFingerprint(description);
+  const locationFingerprint = normalizeTextFingerprint(location);
+
+  const recentComplaintCount = await complaints.countDocuments({
+    verifiedContactHash: contactHash,
+    createdAt: { $gte: new Date(now - (30 * 60 * 1000)) },
+  });
+
+  if (recentComplaintCount >= 3) {
+    return {
+      error: 'Too many complaints were submitted from this verified contact recently. Please wait a while before filing another one.',
+      status: 429,
+    };
+  }
+
+  const duplicateComplaint = await complaints.findOne({
+    verifiedContactHash: contactHash,
+    descriptionFingerprint,
+    locationFingerprint,
+    createdAt: { $gte: new Date(now - (12 * 60 * 60 * 1000)) },
+  });
+
+  if (duplicateComplaint) {
+    return {
+      error: 'A very similar complaint from this verified contact was already filed recently. Please track the existing complaint instead of submitting a duplicate.',
+      status: 409,
+    };
+  }
+
+  return {
+    contactHash,
+    descriptionFingerprint,
+    locationFingerprint,
+  };
 }
 
 // POST - Create new complaint
@@ -153,33 +176,84 @@ export async function POST(request) {
     const body = await request.json();
 
     const userName = String(body.userName || '').trim();
-    const userEmail = String(body.userEmail || '').trim().toLowerCase();
+    const userEmail = normalizeEmail(body.userEmail);
+    const userPhone = normalizePhone(body.userPhone);
     const location = String(body.location || '').trim();
+    const verificationToken = String(body.verificationToken || '').trim();
 
-    if (!userName || !location || !isValidEmail(userEmail)) {
+    if (!userName || !location) {
       return Response.json({
         success: false,
-        error: 'Valid name, email, and location are required'
+        error: 'Name and location are required.',
       }, { status: 400 });
     }
-    
-    const client = await connectToDatabase();
-    const db = client.db(dbName);
+
+    if (!isValidEmail(userEmail) && !isValidPhone(userPhone)) {
+      return Response.json({
+        success: false,
+        error: 'Please provide a valid email address or phone number.',
+      }, { status: 400 });
+    }
+
+    const db = await getDb();
+    const verification = await validateVerification({
+      db,
+      verificationToken,
+      userEmail,
+      userPhone,
+    });
+
+    if (verification.error) {
+      return Response.json({
+        success: false,
+        error: verification.error,
+      }, { status: verification.status });
+    }
+
+    const securityCheck = await enforceComplaintSecurity({
+      db,
+      verifiedContact: verification.verifiedContact,
+      location,
+      description: body.description,
+    });
+
+    if (securityCheck.error) {
+      return Response.json({
+        success: false,
+        error: securityCheck.error,
+      }, { status: securityCheck.status });
+    }
+
     const complaints = db.collection('complaints');
 
     const complaint = {
       ...body,
       userName,
-      userEmail,
+      userEmail: isValidEmail(userEmail) ? userEmail : '',
+      userPhone: isValidPhone(userPhone) ? userPhone : '',
       location,
+      verifiedContactChannel: verification.verifiedChannel,
+      verifiedContact: verification.verifiedContact,
+      verifiedContactHash: securityCheck.contactHash,
+      verificationId: verification.verificationRecord._id.toString(),
+      descriptionFingerprint: securityCheck.descriptionFingerprint,
+      locationFingerprint: securityCheck.locationFingerprint,
       createdAt: new Date(),
       status: 'Pending',
       statusUpdatedAt: null,
       updatedAt: new Date(),
     };
 
+    delete complaint.verificationToken;
+
     const result = await complaints.insertOne(complaint);
     const complaintId = result.insertedId.toString();
+
+    await db.collection('otp_requests').updateOne(
+      { _id: verification.verificationRecord._id },
+      { $set: { consumedAt: new Date(), updatedAt: new Date() } }
+    );
+
     const baseUrl = buildBaseUrl(request);
     const trackingUrl = baseUrl ? `${baseUrl}/track?id=${encodeURIComponent(complaintId)}` : `/track?id=${encodeURIComponent(complaintId)}`;
 
@@ -192,14 +266,13 @@ export async function POST(request) {
     return Response.json({
       success: true,
       complaintId,
-      message: 'Complaint submitted successfully'
+      message: 'Complaint submitted successfully',
     }, { status: 201 });
-
   } catch (error) {
     console.error('Error submitting complaint:', error);
     return Response.json({
       success: false,
-      error: 'Failed to submit complaint'
+      error: 'Failed to submit complaint',
     }, { status: 500 });
   }
 }
@@ -222,8 +295,7 @@ export async function GET(request) {
       }, { status: 403 });
     }
 
-    const client = await connectToDatabase();
-    const db = client.db(dbName);
+    const db = await getDb();
     const complaints = db.collection('complaints');
 
     const query = isAdmin(session)
@@ -238,14 +310,13 @@ export async function GET(request) {
 
     return Response.json({
       success: true,
-      complaints: allComplaints
+      complaints: allComplaints,
     });
-
   } catch (error) {
     console.error('Error fetching complaints:', error);
     return Response.json({
       success: false,
-      error: 'Failed to fetch complaints'
+      error: 'Failed to fetch complaints',
     }, { status: 500 });
   }
 }

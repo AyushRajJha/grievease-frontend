@@ -1,19 +1,33 @@
-import { MongoClient, ObjectId } from 'mongodb';
+import { ObjectId } from 'mongodb';
 import { canAccessDepartment, getSessionFromRequest, isAdmin, isDepartmentUser } from '@/lib/auth';
+import { getDb } from '@/lib/mongodb';
+import { verifyVerificationToken } from '@/lib/contactVerification';
 
-const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017';
-const dbName = 'grievease';
-let cachedClient = null;
 const VALID_STATUSES = ['Pending', 'Under Review', 'Assigned', 'In Progress', 'Resolved'];
 
-async function connectToDatabase() {
-  if (cachedClient) {
-    return cachedClient;
+function hasComplaintAccess({ request, complaint, complaintId }) {
+  const session = getSessionFromRequest(request);
+  if (session && (isAdmin(session) || (isDepartmentUser(session) && canAccessDepartment(session, complaint.department)))) {
+    return { allowed: true, via: 'session', session };
   }
-  const client = new MongoClient(uri);
-  await client.connect();
-  cachedClient = client;
-  return client;
+
+  const trackingAccessToken = request.headers.get('x-tracking-token');
+  const payload = verifyVerificationToken(trackingAccessToken);
+
+  if (!payload || payload.type !== 'complaint_tracking') {
+    return { allowed: false };
+  }
+
+  if (payload.complaintId !== complaintId) {
+    return { allowed: false };
+  }
+
+  const expectedContact = payload.channel === 'phone' ? complaint.userPhone : complaint.userEmail;
+  if (!expectedContact || expectedContact !== payload.contact) {
+    return { allowed: false };
+  }
+
+  return { allowed: true, via: 'tracking-token' };
 }
 
 // GET - Fetch complaint by ID
@@ -24,12 +38,11 @@ export async function GET(request, { params }) {
     if (!ObjectId.isValid(id)) {
       return Response.json({
         success: false,
-        error: 'Invalid complaint ID'
+        error: 'Invalid complaint ID',
       }, { status: 400 });
     }
 
-    const client = await connectToDatabase();
-    const db = client.db(dbName);
+    const db = await getDb();
     const complaints = db.collection('complaints');
 
     const complaint = await complaints.findOne({ _id: new ObjectId(id) });
@@ -37,20 +50,32 @@ export async function GET(request, { params }) {
     if (!complaint) {
       return Response.json({
         success: false,
-        error: 'Complaint not found'
+        error: 'Complaint not found',
       }, { status: 404 });
+    }
+
+    const access = hasComplaintAccess({
+      request,
+      complaint,
+      complaintId: id,
+    });
+
+    if (!access.allowed) {
+      return Response.json({
+        success: false,
+        error: 'OTP verification is required to view this complaint.',
+      }, { status: 401 });
     }
 
     return Response.json({
       success: true,
-      complaint
+      complaint,
     });
-
   } catch (error) {
     console.error('Error fetching complaint:', error);
     return Response.json({
       success: false,
-      error: 'Failed to fetch complaint'
+      error: 'Failed to fetch complaint',
     }, { status: 500 });
   }
 }
@@ -64,21 +89,21 @@ export async function PATCH(request, { params }) {
     if (!session) {
       return Response.json({
         success: false,
-        error: 'Unauthorized'
+        error: 'Unauthorized',
       }, { status: 401 });
     }
 
     if (!isAdmin(session) && !isDepartmentUser(session)) {
       return Response.json({
         success: false,
-        error: 'Forbidden'
+        error: 'Forbidden',
       }, { status: 403 });
     }
 
     if (!ObjectId.isValid(id)) {
       return Response.json({
         success: false,
-        error: 'Invalid complaint ID'
+        error: 'Invalid complaint ID',
       }, { status: 400 });
     }
 
@@ -88,12 +113,11 @@ export async function PATCH(request, { params }) {
     if (!VALID_STATUSES.includes(status)) {
       return Response.json({
         success: false,
-        error: 'Invalid status value'
+        error: 'Invalid status value',
       }, { status: 400 });
     }
 
-    const client = await connectToDatabase();
-    const db = client.db(dbName);
+    const db = await getDb();
     const complaints = db.collection('complaints');
 
     const existingComplaint = await complaints.findOne({ _id: new ObjectId(id) });
@@ -101,18 +125,18 @@ export async function PATCH(request, { params }) {
     if (!existingComplaint) {
       return Response.json({
         success: false,
-        error: 'Complaint not found'
+        error: 'Complaint not found',
       }, { status: 404 });
     }
 
     if (!canAccessDepartment(session, existingComplaint.department)) {
       return Response.json({
         success: false,
-        error: 'You are not allowed to update this complaint'
+        error: 'You are not allowed to update this complaint',
       }, { status: 403 });
     }
 
-    const result = await complaints.updateOne(
+    await complaints.updateOne(
       { _id: new ObjectId(id) },
       {
         $set: {
@@ -127,13 +151,13 @@ export async function PATCH(request, { params }) {
 
     return Response.json({
       success: true,
-      complaint
+      complaint,
     });
   } catch (error) {
     console.error('Error updating complaint status:', error);
     return Response.json({
       success: false,
-      error: 'Failed to update complaint status'
+      error: 'Failed to update complaint status',
     }, { status: 500 });
   }
 }

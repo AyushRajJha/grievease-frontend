@@ -1,4 +1,5 @@
 import { MongoClient, ObjectId } from 'mongodb';
+import { canAccessDepartment, getSessionFromRequest, isAdmin, isDepartmentUser } from '@/lib/auth';
 
 const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017';
 const dbName = 'grievease';
@@ -59,6 +60,21 @@ export async function PATCH(request, { params }) {
   try {
     const { id } = await params;
 
+    const session = getSessionFromRequest(request);
+    if (!session) {
+      return Response.json({
+        success: false,
+        error: 'Unauthorized'
+      }, { status: 401 });
+    }
+
+    if (!isAdmin(session) && !isDepartmentUser(session)) {
+      return Response.json({
+        success: false,
+        error: 'Forbidden'
+      }, { status: 403 });
+    }
+
     if (!ObjectId.isValid(id)) {
       return Response.json({
         success: false,
@@ -80,6 +96,22 @@ export async function PATCH(request, { params }) {
     const db = client.db(dbName);
     const complaints = db.collection('complaints');
 
+    const existingComplaint = await complaints.findOne({ _id: new ObjectId(id) });
+
+    if (!existingComplaint) {
+      return Response.json({
+        success: false,
+        error: 'Complaint not found'
+      }, { status: 404 });
+    }
+
+    if (!canAccessDepartment(session, existingComplaint.department)) {
+      return Response.json({
+        success: false,
+        error: 'You are not allowed to update this complaint'
+      }, { status: 403 });
+    }
+
     const result = await complaints.updateOne(
       { _id: new ObjectId(id) },
       {
@@ -90,13 +122,6 @@ export async function PATCH(request, { params }) {
         },
       }
     );
-
-    if (result.matchedCount === 0) {
-      return Response.json({
-        success: false,
-        error: 'Complaint not found'
-      }, { status: 404 });
-    }
 
     const complaint = await complaints.findOne({ _id: new ObjectId(id) });
 

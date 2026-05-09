@@ -1,5 +1,6 @@
 import nodemailer from 'nodemailer';
 import { MongoClient } from 'mongodb';
+import { getSessionFromRequest, isAdmin, isDepartmentUser } from '@/lib/auth';
 
 const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017';
 const dbName = 'grievease';
@@ -206,12 +207,31 @@ export async function POST(request) {
 // GET - Fetch all complaints
 export async function GET(request) {
   try {
+    const session = getSessionFromRequest(request);
+    if (!session) {
+      return Response.json({
+        success: false,
+        error: 'Unauthorized',
+      }, { status: 401 });
+    }
+
+    if (!isAdmin(session) && !isDepartmentUser(session)) {
+      return Response.json({
+        success: false,
+        error: 'Forbidden',
+      }, { status: 403 });
+    }
+
     const client = await connectToDatabase();
     const db = client.db(dbName);
     const complaints = db.collection('complaints');
 
+    const query = isAdmin(session)
+      ? {}
+      : { department: session.department };
+
     const allComplaints = await complaints
-      .find({})
+      .find(query)
       .sort({ createdAt: -1 })
       .limit(100)
       .toArray();
